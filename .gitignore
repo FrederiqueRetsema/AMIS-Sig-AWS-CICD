@@ -1,0 +1,3 @@
+*.tfplans
+*.state
+*.old

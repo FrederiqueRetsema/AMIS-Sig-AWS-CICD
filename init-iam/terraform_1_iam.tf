@@ -38,19 +38,19 @@ data "aws_availability_zones" "available" {}
 # Create as many keys as users
 #
 
-#resource "aws_kms_key" "amis" {
-#  count                    = var.number_of_users
-#  description              = "${var.nameprefix}${count.index}"
-#  key_usage                = "ENCRYPT_DECRYPT"
-#  customer_master_key_spec = "RSA_2048"
-#  
-#}
+resource "aws_kms_key" "amis" {
+  count                    = var.number_of_users
+  description              = "${var.nameprefix}${count.index}"
+  key_usage                = "ENCRYPT_DECRYPT"
+  customer_master_key_spec = "RSA_2048"
+  
+}
 
-#resource "aws_kms_alias" "amis" {
-#  count          = var.number_of_users
-#  name           = "alias/${var.nameprefix}${count.index}"
-#  target_key_id  = aws_kms_key.amis[count.index].key_id 
-#}
+resource "aws_kms_alias" "amis" {
+  count          = var.number_of_users
+  name           = "alias/${var.nameprefix}${count.index}"
+  target_key_id  = aws_kms_key.amis[count.index].key_id 
+}
 
 resource "aws_iam_policy" "AMIS_CICD_policy" {
     name = "AMIS_CICD_Policy"
