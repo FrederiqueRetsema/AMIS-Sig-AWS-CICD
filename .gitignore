@@ -1,0 +1,7 @@
+*.tfplans
+*.state
+*.old
+*.backup
+*.tfstate
+*.txt
+*/.terraform/*
