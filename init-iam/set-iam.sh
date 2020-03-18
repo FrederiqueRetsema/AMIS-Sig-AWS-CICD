@@ -27,4 +27,4 @@ aws iam create-login-profile --user-name AMIS4 --password DomToren4# --no-passwo
 #
 # 
 aws iam create-access-key --user-name AMIS0 > ./created-access-keys.txt
-
+./create-terraform-cicd-tfvars.sh

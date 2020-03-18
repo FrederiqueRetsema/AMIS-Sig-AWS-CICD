@@ -54,17 +54,27 @@ resource "aws_kms_alias" "amis" {
 
 resource "aws_iam_policy" "AMIS_CICD_policy" {
     name = "AMIS_CICD_Policy"
-	description = "Policy for CD CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
+	description = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     policy = <<EOF
 {
     "Version": "2012-10-17",
     "Statement": [
       {
         "Action": [
+                  "apigateway:*",
 		  "lambda:*",
+                  "sns:*",
 		  "cloudformation:*",
 		  "cloudwatch:describe*",
-		  "cloudwatch:get*"
+		  "cloudwatch:get*",
+                  "iam:ListRoles",
+                  "iam:ListRolePolicies",
+                  "iam:ListAttachedRolePolicies",
+                  "iam:GetRole",
+                  "iam:GetPolicy",
+                  "iam:GetPolicyVersion",
+                  "iam:PassRole",
+                  "kms:GetPublicKey"
 		],
 		"Effect": "Allow",
 		"Resource": "*"
@@ -72,6 +82,55 @@ resource "aws_iam_policy" "AMIS_CICD_policy" {
 	]
 }
 EOF
+}
+
+resource "aws_iam_policy" "AMIS_CICD_lambda_accept_policy" {
+    name = "AMIS_CICD_lambda_accept_policy"
+	description = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
+    policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Action": [
+		  "logs:CreateLogGroup",
+		  "logs:CreateLogStream",
+		  "logs:PutLogEvents",
+		  "sns:Publish",
+                  "kms:GetPublicKey"
+                  ],
+		"Effect": "Allow",
+		"Resource": "*"
+	  }
+	]
+}
+EOF
+}
+
+resource "aws_iam_role" "AMIS_CICD_lambda_accept_role" {
+    name = "AMIS_CICD_lambda_accept_role"
+    description =  "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
+    force_detach_policies = true
+    assume_role_policy =  <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "lambda.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+        }
+    ]
+}
+EOF
+} 
+
+resource "aws_iam_policy_attachment" "policy_to_role" {
+   name       = "policy_to_role"
+   roles      = [aws_iam_role.AMIS_CICD_lambda_accept_role.name]
+   policy_arn = aws_iam_policy.AMIS_CICD_lambda_accept_policy.arn
 }
 
 resource "aws_iam_user" "AMIS_user" {
