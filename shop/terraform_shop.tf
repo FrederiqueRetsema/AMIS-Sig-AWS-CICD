@@ -8,11 +8,6 @@ variable "aws_secret_key" {}
 variable "prefix" {
     default = "AMIS0"
 }
-
-variable "phonenumber" {
-    default = "+31612345678"
-}
-
 ##################################################################################
 # PROVIDERS
 ##################################################################################
@@ -65,6 +60,18 @@ resource "aws_api_gateway_integration" "integration" {
   uri                     = aws_lambda_function.accept.invoke_arn
 }
 
+resource "aws_api_gateway_deployment" "deployment_prod" {
+  depends_on = [aws_api_gateway_integration.integration]
+  rest_api_id = aws_api_gateway_rest_api.API_Gateway.id
+  stage_name = "prod"
+}
+
+#resource "aws_api_gateway_stage" "prod" {
+#  stage_name = "prod"
+#  rest_api_id = aws_api_gateway_rest_api.API_Gateway.id
+#  deployment_id = aws_api_gateway_deployment.deployment_prod.id
+#}
+
 # Lambda
 resource "aws_lambda_permission" "lambda_permission" {
   statement_id  = "AllowExecutionFromAPIGateway"
@@ -77,7 +84,7 @@ resource "aws_lambda_permission" "lambda_permission" {
 
 resource "aws_lambda_function" "accept" {
     function_name = "${var.prefix}_accept"
-    filename = "./lambdas/accept.zip"
+    filename = "./lambdas/accept/accept.zip"
     role = data.aws_iam_role.lambda_accept_role.arn
     handler = "accept.lambda_handler"
     runtime = "python3.8"
@@ -113,23 +120,39 @@ resource "aws_sns_topic" "to_process" {
 EOF
 }
 
-# SNS subscriptions for topic to_process
-resource "aws_sns_topic_subscription" "to_process_subscription_sms" {
-  topic_arn = aws_sns_topic.to_process.arn
-  protocol  = "sms"
-  endpoint  = var.phonenumber
-}
+# SNS subscriptions for lambda process
+#resource "aws_sns_topic_subscription" "to_process_subscription_lambda" {
+#  topic_arn = aws_sns_topic.to_process.arn
+#  protocol  = "lambda"
+#  endpoint  = var.email
+#}
 
 # Lambda process
 
+#resource "aws_lambda_function" "process" {
+#    function_name = "${var.prefix}_process"
+#    filename = "./lambdas/process/process.zip"
+#    role = data.aws_iam_role.lambda_process_role.arn
+#    handler = "process.lambda_handler"
+#    runtime = "python3.8"
+#    environment {
+#        variables = {
+#            to_process_topic_arn = aws_sns_topic.to_process.arn
+#        }
+#    }
+#}
+
 # DynamoDB table
+
+#resource "aws_dynamodb_table" "inventory_sales" {
+#}
 
 
 ##################################################################################
 # OUTPUT
 ##################################################################################
 
-#output "passwords" {
-#  value = aws_iam_user_login_profile.AWS_SIG_Login_profile[*].encrypted_password
-#}
+output "invoke_url" {
+  value = aws_api_gateway_deployment.deployment_prod.invoke_url
+}
 

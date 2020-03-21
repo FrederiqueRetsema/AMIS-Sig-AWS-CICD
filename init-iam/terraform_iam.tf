@@ -13,6 +13,10 @@ variable nameprefix {
    description = "Prefix that is used for both the username and the keyname"
    default = "AMIS"
 }
+variable keyprefix {
+   description = "Prefix for key. Change this if you get a 'key already exists' message on creation"
+   default = "Key-"
+}
 
 ##################################################################################
 # PROVIDERS
@@ -48,7 +52,7 @@ resource "aws_kms_key" "amis" {
 
 resource "aws_kms_alias" "amis" {
   count          = var.number_of_users
-  name           = "alias/${var.nameprefix}${count.index}"
+  name           = "alias/${var.keyprefix}${var.nameprefix}${count.index}"
   target_key_id  = aws_kms_key.amis[count.index].key_id 
 }
 
