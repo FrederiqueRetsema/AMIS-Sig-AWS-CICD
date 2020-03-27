@@ -15,7 +15,7 @@ variable nameprefix {
 }
 variable keyprefix {
    description = "Prefix for key. Change this if you get a 'key already exists' message on creation"
-   default = "Key-"
+   default = "KeyB-"
 }
 
 ##################################################################################
@@ -43,12 +43,12 @@ data "aws_availability_zones" "available" {}
 #
 
 resource "aws_kms_key" "amis" {
-  count                    = var.number_of_users
-  description              = "${var.nameprefix}${count.index}"
-  key_usage                = "ENCRYPT_DECRYPT"
-  customer_master_key_spec = "RSA_2048"
-  
+    count                    = var.number_of_users
+    description              = "${var.nameprefix}${count.index}"
+    key_usage                = "ENCRYPT_DECRYPT"
+    customer_master_key_spec = "RSA_2048"
 }
+
 
 resource "aws_kms_alias" "amis" {
   count          = var.number_of_users
@@ -58,7 +58,7 @@ resource "aws_kms_alias" "amis" {
 
 resource "aws_iam_policy" "AMIS_CICD_policy" {
     name = "AMIS_CICD_Policy"
-	description = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
+    description = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     policy = <<EOF
 {
     "Version": "2012-10-17",
@@ -90,7 +90,7 @@ EOF
 
 resource "aws_iam_policy" "AMIS_CICD_lambda_accept_policy" {
     name = "AMIS_CICD_lambda_accept_policy"
-	description = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
+    description = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     policy = <<EOF
 {
     "Version": "2012-10-17",
@@ -150,13 +150,73 @@ resource "aws_iam_group" "AMIS_group" {
 resource "aws_iam_group_membership" "SIG_CICD" {
     name  = "SIG-CICD-membership"
     users = aws_iam_user.AMIS_user[*].name
-	group = aws_iam_group.AMIS_group.name
+    group = aws_iam_group.AMIS_group.name
 }
 
 resource "aws_iam_group_policy_attachment" "SIG_CICD_Policy_attachment" {
     group      = aws_iam_group.AMIS_group.name
 	policy_arn =  aws_iam_policy.AMIS_CICD_policy.arn
 }
+
+#
+## DynamoDB
+#
+
+resource "aws_dynamodb_table" "AMIS-stores" {
+    name           = "AMIS-stores"
+    billing_mode   = "PROVISIONED"
+    read_capacity  = 1
+    write_capacity = 1
+    hash_key       = "storeID"
+    range_key      = "recordType"
+
+    attribute {
+        name = "storeID"
+        type = "S"
+    }
+
+    attribute {
+        name = "recordType"
+        type = "S"
+    }
+}
+
+#resource "aws_dynamodb_table_item" "AMIS-goudse-kaas-items" {
+#    table_name     = aws_dynamodb_table.AMIS-stores.name
+#    hash_key       = aws_dynamodb_table.AMIS-stores.hash_key
+#    count          = var.number_of_users
+#
+#    item = <<ITEM
+#{
+#    "storeID"         : {"S": "${var.nameprefix}${count.index}"},
+#    "recordType"      : {"S": "store"},
+#    "itemID"          : {"N": "1234"},
+#    "itemDescription" : {"S": "Goudse kaas, oud 48+, 6 plakken"},
+#    "stock"           : {"N": "10000"},
+#    "sellingPrice"    : {"N": "3"},
+#    "grossAmount"     : {"N": "0"}
+#}
+#ITEM
+#}
+#
+#resource "aws_dynamodb_table_item" "AMIS-Beemster-kaas-items" {
+#    table_name     = aws_dynamodb_table.AMIS-stores.name
+#    hash_key       = aws_dynamodb_table.AMIS-stores.hash_key
+#    count          = var.number_of_users
+#
+#    item = <<ITEM
+#{
+#    "storeID"         : { "S": "${var.nameprefix}${count.index}"},
+#    "recordType"      : { "S": "store"},
+#    "itemID"          : { "N": "98"},
+#    "itemDescription" : { "S": "Beemster kaas, 500g"},
+#    "stock"           : { "N": "10000" },
+#    "sellingPrice"    : { "N": "9.90" },
+#    "grossAmount"     : { "N": "0" }
+#}
+#ITEM
+#}
+#
 
 ##################################################################################
 # OUTPUT
