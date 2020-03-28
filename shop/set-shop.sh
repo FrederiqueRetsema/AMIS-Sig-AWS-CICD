@@ -1,5 +1,6 @@
 cd lambdas/accept
 zip accept.zip accept.py
+cd ../..
 cd lambdas/process
 zip process.zip process.py
 cd ../..

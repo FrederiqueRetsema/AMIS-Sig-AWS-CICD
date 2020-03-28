@@ -27,6 +27,10 @@ data "aws_iam_role" "lambda_accept_role" {
     name = "AMIS_CICD_lambda_accept_role"
 }
 
+data "aws_iam_role" "lambda_process_role" {
+    name = "AMIS_CICD_lambda_process_role"
+}
+
 ##################################################################################
 # RESOURCES
 ##################################################################################
@@ -67,14 +71,8 @@ resource "aws_api_gateway_deployment" "deployment_prod" {
   stage_name = "prod"
 }
 
-#resource "aws_api_gateway_stage" "prod" {
-#  stage_name = "prod"
-#  rest_api_id = aws_api_gateway_rest_api.API_Gateway.id
-#  deployment_id = aws_api_gateway_deployment.deployment_prod.id
-#}
-
 # Lambda
-resource "aws_lambda_permission" "lambda_permission" {
+resource "aws_lambda_permission" "lambda_accept_permission" {
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.accept.function_name
@@ -97,57 +95,41 @@ resource "aws_lambda_function" "accept" {
 }
 
 # SNS topic to_process
+# - For a description of the resend policies for Lambda, see https://docs.aws.amazon.com/sns/latest/dg/sns-message-delivery-retries.html
 
 resource "aws_sns_topic" "to_process" {
   name = "${var.prefix}_to_process"
-  delivery_policy = <<EOF
-{
-  "http": {
-    "defaultHealthyRetryPolicy": {
-      "minDelayTarget": 20,
-      "maxDelayTarget": 20,
-      "numRetries": 3,
-      "numMaxDelayRetries": 0,
-      "numNoDelayRetries": 0,
-      "numMinDelayRetries": 0,
-      "backoffFunction": "linear"
-    },
-    "disableSubscriptionOverrides": false,
-    "defaultThrottlePolicy": {
-      "maxReceivesPerSecond": 1000
-    }
-  }
-}
-EOF
 }
 
-# SNS subscriptions for lambda process
-#resource "aws_sns_topic_subscription" "to_process_subscription_lambda" {
-#  topic_arn = aws_sns_topic.to_process.arn
-#  protocol  = "lambda"
-#  endpoint  = var.email
-#}
+resource "aws_sns_topic_subscription" "process_to_lambda" {
+  topic_arn = aws_sns_topic.to_process.arn
+  protocol  = "lambda"
+  endpoint  = aws_lambda_function.process.arn
+}
+
+# Lambda permission
+resource "aws_lambda_permission" "lambda_process_permission" {
+  statement_id  = "AllowExecutionFromSNS"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.process.function_name
+  principal     = "sns.amazonaws.com"
+  source_arn    = aws_sns_topic.to_process.arn
+}
 
 # Lambda process
 
-#resource "aws_lambda_function" "process" {
-#    function_name = "${var.prefix}_process"
-#    filename = "./lambdas/process/process.zip"
-#    role = data.aws_iam_role.lambda_process_role.arn
-#    handler = "process.lambda_handler"
-#    runtime = "python3.8"
-#    environment {
-#        variables = {
-#            to_process_topic_arn = aws_sns_topic.to_process.arn
-#        }
-#    }
-#}
-
-# DynamoDB table
-
-#resource "aws_dynamodb_table" "inventory_sales" {
-#}
-
+resource "aws_lambda_function" "process" {
+    function_name = "${var.prefix}_process"
+    filename = "./lambdas/process/process.zip"
+    role = data.aws_iam_role.lambda_process_role.arn
+    handler = "process.lambda_handler"
+    runtime = "python3.8"
+    environment {
+        variables = {
+            to_process_topic_arn = aws_sns_topic.to_process.arn
+        }
+    }
+}
 
 ##################################################################################
 # OUTPUT

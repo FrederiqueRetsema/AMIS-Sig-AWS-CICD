@@ -9,7 +9,7 @@ if (len(sys.argv) != 3):
     sys.exit(1)
 
 shop = sys.argv[1]
-keyAlias = 'alias/Key-'+shop
+keyAlias = 'alias/KeyC-'+shop
 url = sys.argv[2]
 
 print ("Shop = ", shop)

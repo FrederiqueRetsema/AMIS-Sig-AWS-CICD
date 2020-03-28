@@ -1,3 +1,10 @@
+# addDynamoDBRecords.py
+# ---------------------
+#
+# It would be better to do this in the terraform file, but there is an error in terraform that adding new records will give
+# an error. When terraform fixes this, this script will be deleted and will become part of the terraform_iam.tf config file.
+#
+
 import boto3
 
 prefix          = "AMIS"
