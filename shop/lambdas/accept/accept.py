@@ -12,7 +12,7 @@ def lambda_handler(event, context):
 
     sns.publish(
       TopicArn = sns_topic_arn,
-      Message = str(event)
+      Message = json.dumps(event)
     )
     statusCode = 200
     returnMessage = "OK"

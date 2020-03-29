@@ -24,9 +24,15 @@ aws iam create-login-profile --user-name AMIS4 --password DomToren4# --no-passwo
 # aws iam create-login-profile --user-name AMIS19 --password DomToren19# --no-password-reset-required
 
 #
-#
+# Create terraform-cicd.tfvars file
 # 
 aws iam create-access-key --user-name AMIS0 > ./created-access-keys.txt
 ./create-terraform-cicd-tfvars.sh
+rm ./created-access-keys.txt
+
+# 
+# Add records to the DynamoDB database
+#
 
 python3 addDynamoDBRecords.py
+

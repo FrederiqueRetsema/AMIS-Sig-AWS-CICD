@@ -17,7 +17,7 @@ variable nameprefix {
 
 variable keyprefix {
    description = "Prefix for key. Change this if you get a 'key already exists' message on creation"
-   default = "KeyC-"
+   default = "KeyD-"
 }
 
 variable region {
@@ -38,8 +38,6 @@ provider "aws" {
 ##################################################################################
 # DATA
 ##################################################################################
-
-data "aws_availability_zones" "available" {}
 
 ##################################################################################
 # RESOURCES
@@ -149,7 +147,8 @@ resource "aws_iam_policy" "AMIS_CICD_lambda_process_policy" {
 		  "logs:CreateLogStream",
 		  "logs:PutLogEvents",
 		  "dynamodb:update-item",
-                  "kms:GetPublicKey"
+                  "kms:GetPublicKey",
+                  "kms:Decrypt"
                   ],
 		"Effect": "Allow",
 		"Resource": "*",

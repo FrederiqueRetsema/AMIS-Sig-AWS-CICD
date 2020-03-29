@@ -9,6 +9,10 @@ variable "prefix" {
     default = "AMIS0"
 }
 
+variable "key-prefix" {
+    default = "KeyD-"
+}
+
 ##################################################################################
 # PROVIDERS
 ##################################################################################
@@ -126,7 +130,7 @@ resource "aws_lambda_function" "process" {
     runtime = "python3.8"
     environment {
         variables = {
-            to_process_topic_arn = aws_sns_topic.to_process.arn
+            key_prefix = var.key-prefix
         }
     }
 }

@@ -1,2 +1,4 @@
-1234,5,12.30
-98,1,2
+{
+  "sales": [{"itemNo" : "1234", "grossNumber": "5", "grossTurnover": "12.30"},
+            {"itemNo" : "98",   "grossNumber": "1", "grossTurnover": 2}]
+}
