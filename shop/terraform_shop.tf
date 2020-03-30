@@ -10,7 +10,7 @@ variable "prefix" {
 }
 
 variable "key-prefix" {
-    default = "KeyD-"
+    default = "KeyE-"
 }
 
 ##################################################################################

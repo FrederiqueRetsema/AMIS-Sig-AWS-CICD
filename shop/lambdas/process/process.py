@@ -45,6 +45,42 @@ def decrypt(shop, encrypted_content):
 
   return {"succeeded": succeeded, "decrypted_content": decrypted_content}
 
+def update_dynamodb(shop, sales):
+  try:
+    
+    for sales_item in sales:
+      
+      # Construct recordtype by add leading zeroes if necessary
+      itemNo = int(sales_item["itemNo"])
+      recordType = "s-{:05d}".format(itemNo)
+      grossNumber = sales_item["grossNumber"]
+      grossTurnover = sales_item["grossTurnover"]
+    
+      print("storeId: "+shop+" - recordType: "+recordType+" - grossNumber: "+str(grossNumber)+" - grossTurnover: "+str(grossTurnover))
+     
+      dynamodb = boto3.client('dynamodb')
+      response = dynamodb.update_item (
+          TableName = "AMIS-stores",
+          Key = {
+            'storeID': {"S":shop},
+            'recordType' : {"S":recordType}
+          },
+          UpdateExpression = "set grossNumber = grossNumber + :grossNumber, grossTurnover = grossTurnover + :grossTurnover, stock = stock - :grossNumber",
+          ExpressionAttributeValues = {
+              ':grossNumber'  : {"N":grossNumber},
+              ':grossTurnover': {"N":grossTurnover}
+            },
+          ReturnValues = "UPDATED_NEW"
+        ) 
+    
+    succeeded = True
+    
+  except ClientError as e:
+    succeeded = False
+    print("ERROR:" + shop + " - " + str(e))
+
+  return {"succeeded": succeeded}
+
 def lambda_handler(event, context):
 
   decrypted_content = ""
@@ -65,9 +101,10 @@ def lambda_handler(event, context):
     json_content = json.loads(decrypted_content)
     
     # Temporary code, just to show that the object that we decrypted is valid JSON
-    print("Sales: "+str(json_content["sales"]))
+    update_dynamodb(shop, json_content["sales"])
 
   print("Shop: "+shop+", succeeded: "+str(response["succeeded"])+", decrypted_content: "+str(response["decrypted_content"]))
 
   print("DONE: event:"+str(event)+", context.get_remaining_time_in_millis(): "+str(context.get_remaining_time_in_millis())+", context.memory_limit_in_mb: "+str(context.memory_limit_in_mb)+", context.log_group_name: "+context.log_group_name+", context.log_stream_name: "+context.log_stream_name)
+
 

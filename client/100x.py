@@ -39,7 +39,9 @@ content_base64 = base64.standard_b64encode(encrypted_content).decode("utf-8")
 data ={"shop": shop, "content_base64": content_base64}
 print(data)
 
-reply = requests.post(url, json.dumps(data))
+for i in range(100):
+  print(i)
+  reply = requests.post(url, json.dumps(data))
 print (str(reply))
 print ("Reply content: "+str(reply.content))
 
