@@ -4,6 +4,7 @@
 
 variable "aws_access_key" {}
 variable "aws_secret_key" {}
+variable "domainname"     {}
 
 variable "prefix" {
     default = "AMIS0"
@@ -35,15 +36,61 @@ data "aws_iam_role" "lambda_process_role" {
     name = "AMIS_CICD_lambda_process_role"
 }
 
+data "aws_acm_certificate" "mydomain_certificate" {
+    domain = "*.${var.domainname}"
+}
+
+data "aws_route53_zone" "my_zone" {
+    name = var.domainname
+}
+
 ##################################################################################
 # RESOURCES
 ##################################################################################
 
+# Route 53
+
+resource "aws_route53_record" "my_shop_dns_record" {
+    zone_id = data.aws_route53_zone.my_zone.zone_id
+    name    = lower(var.prefix)
+    type    = "A"
+
+    alias {
+        name                   = aws_api_gateway_domain_name.API_Gateway_domain_name.regional_domain_name
+        zone_id                = aws_api_gateway_domain_name.API_Gateway_domain_name.regional_zone_id
+        evaluate_target_health = true
+    }
+}
+
+# Connection to certificate
+
+resource "aws_acm_certificate_validation" "mycertificate_validation" {
+    certificate_arn = data.aws_acm_certificate.mydomain_certificate.arn
+}
+
 # API Gateway
+
+resource "aws_api_gateway_domain_name" "API_Gateway_domain_name" {
+  domain_name              = "${lower(var.prefix)}.${var.domainname}"
+  regional_certificate_arn = aws_acm_certificate_validation.mycertificate_validation.certificate_arn
+  security_policy = "TLS_1_2"
+  endpoint_configuration {
+    types = ["REGIONAL"]
+  }
+}
+
+resource "aws_api_gateway_base_path_mapping" "map_shop_prod_to_api_gateway_domain" {
+  api_id = aws_api_gateway_rest_api.API_Gateway.id
+  stage_name = aws_api_gateway_deployment.deployment_prod.stage_name
+  domain_name = aws_api_gateway_domain_name.API_Gateway_domain_name.domain_name
+}
 
 resource "aws_api_gateway_rest_api" "API_Gateway" {
   name        = "${var.prefix}_API_Gateway"
   description = "Part of workshop on 01-07-2020"
+  endpoint_configuration {
+    types = ["REGIONAL"]
+  }
 }
 
 resource "aws_api_gateway_resource" "API_Gateway_resource_shop" {

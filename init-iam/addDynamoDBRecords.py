@@ -8,7 +8,7 @@
 import boto3
 
 prefix          = "AMIS"
-number_of_users = 5
+number_of_users = 2
 
 for userNumber in range(number_of_users):
   dynamodb = boto3.client("dynamodb")

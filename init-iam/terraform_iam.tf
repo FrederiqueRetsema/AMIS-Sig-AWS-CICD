@@ -2,27 +2,25 @@
 # VARIABLES
 ##################################################################################
 
-variable "aws_access_key" {}
-variable "aws_secret_key" {}
+variable "aws_access_key"         {}
+variable "aws_secret_key"         {}
 
-variable number_of_users {
-   description = "Number of users that will attend the workshop"
-   default = 5
+variable "number_of_users"        {}
+variable "offset_number_of_users" {}
+variable "nameprefix"             {}
+
+variable "aws_region_sig"         {}
+variable "aws_region_ec2"         {
+    description = "Is not used in this script. Declaration is done to prevent warnings."
 }
 
-variable nameprefix {
-   description = "Prefix that is used for both the username and the keyname"
-   default = "AMIS"
+variable "domainname" {
+    default = "amis-sig.nl"
 }
 
 variable keyprefix {
    description = "Prefix for key. Change this if you get a 'key already exists' message on creation"
    default = "KeyE-"
-}
-
-variable region {
-   description = "Region where the workshop is helt in."
-   default = "eu-west-1"
 }
 
 ##################################################################################
@@ -32,12 +30,17 @@ variable region {
 provider "aws" {
   access_key = var.aws_access_key
   secret_key = var.aws_secret_key
-  region     = var.region
+  region     = var.aws_region_sig
 }
 
 ##################################################################################
 # DATA
 ##################################################################################
+
+data "aws_route53_zone" "my_zone" {
+    name         = var.domainname
+    private_zone = false
+}
 
 ##################################################################################
 # RESOURCES
@@ -49,7 +52,7 @@ provider "aws" {
 
 resource "aws_kms_key" "amis" {
     count                    = var.number_of_users
-    description              = "${var.nameprefix}${count.index}"
+    description              = "${var.nameprefix}${count.index + var.offset_number_of_users}"
     key_usage                = "ENCRYPT_DECRYPT"
     customer_master_key_spec = "RSA_2048"
 }
@@ -57,7 +60,7 @@ resource "aws_kms_key" "amis" {
 
 resource "aws_kms_alias" "amis" {
   count          = var.number_of_users
-  name           = "alias/${var.keyprefix}${var.nameprefix}${count.index}"
+  name           = "alias/${var.keyprefix}${var.nameprefix}${count.index + var.offset_number_of_users}"
   target_key_id  = aws_kms_key.amis[count.index].key_id 
 }
 
@@ -74,6 +77,9 @@ resource "aws_iam_policy" "AMIS_CICD_policy" {
 		  "lambda:*",
                   "sns:*",
                   "dynamodb:*",
+                  "acm:ListCertificates",
+                  "acm:DescribeCertificate",
+                  "route53:*",
 		  "cloudformation:*",
 		  "cloudwatch:describe*",
 		  "cloudwatch:get*",
@@ -93,6 +99,28 @@ resource "aws_iam_policy" "AMIS_CICD_policy" {
 }
 EOF
 }
+
+#
+# Certificate: needed for use of domain within API gateway
+#
+
+resource "aws_acm_certificate" "cert" {
+  domain_name       = "*.${var.domainname}"
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_route53_record" "certificate_check_record" {
+    zone_id  = data.aws_route53_zone.my_zone.zone_id
+    name     = aws_acm_certificate.cert.domain_validation_options[0].resource_record_name
+    type     = aws_acm_certificate.cert.domain_validation_options[0].resource_record_type
+    records  = [aws_acm_certificate.cert.domain_validation_options[0].resource_record_value]
+    ttl      = "300"
+}
+
 
 # logs: needed to create entries in cloudwatch for this lambda policy
 # sns: needed to send a message to the next lambda function
@@ -118,7 +146,7 @@ resource "aws_iam_policy" "AMIS_CICD_lambda_accept_policy" {
 		"Resource": "*",
                 "Condition": {
                    "StringEquals": {
-                       "aws:RequestedRegion": "${var.region}"
+                       "aws:RequestedRegion": "${var.aws_region_sig}"
                    }
                 }
 	}
@@ -156,7 +184,7 @@ resource "aws_iam_policy" "AMIS_CICD_lambda_process_policy" {
 		"Resource": "*",
                 "Condition": {
                    "StringEquals": {
-                       "aws:RequestedRegion": "${var.region}"
+                       "aws:RequestedRegion": "${var.aws_region_sig}"
                    }
                 }
       }
@@ -219,7 +247,7 @@ resource "aws_iam_policy_attachment" "policy_to_process_role" {
 
 resource "aws_iam_user" "AMIS_user" {
     count                    = var.number_of_users
-    name                     = "${var.nameprefix}${count.index}"
+    name                     = "${var.nameprefix}${count.index + var.offset_number_of_users}"
     force_destroy            = true
 }
 
@@ -270,7 +298,7 @@ resource "aws_dynamodb_table" "AMIS-stores" {
 #
 #    item = <<ITEM
 #{
-#    "storeID"         : {"S": "${var.nameprefix}${count.index}"},
+#    "storeID"         : {"S": "${var.nameprefix}${count.index + var.offset_number_of_users}"},
 #    "recordType"      : {"S": "store"},
 #    "itemID"          : {"N": "1234"},
 #    "itemDescription" : {"S": "Goudse kaas, oud 48+, 6 plakken"},
