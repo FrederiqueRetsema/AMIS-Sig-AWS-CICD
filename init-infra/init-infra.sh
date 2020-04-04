@@ -4,9 +4,9 @@
 
 aws iam create-login-profile --user-name AMIS0 --password DomToren0# --no-password-reset-required
 aws iam create-login-profile --user-name AMIS1 --password DomToren1# --no-password-reset-required
-#aws iam create-login-profile --user-name AMIS2 --password DomToren2# --no-password-reset-required
-#aws iam create-login-profile --user-name AMIS3 --password DomToren3# --no-password-reset-required
-#aws iam create-login-profile --user-name AMIS4 --password DomToren4# --no-password-reset-required
+# aws iam create-login-profile --user-name AMIS2 --password DomToren2# --no-password-reset-required
+# aws iam create-login-profile --user-name AMIS3 --password DomToren3# --no-password-reset-required
+# aws iam create-login-profile --user-name AMIS4 --password DomToren4# --no-password-reset-required
 # aws iam create-login-profile --user-name AMIS5 --password DomToren5# --no-password-reset-required
 # aws iam create-login-profile --user-name AMIS6 --password DomToren6# --no-password-reset-required
 # aws iam create-login-profile --user-name AMIS7 --password DomToren7# --no-password-reset-required

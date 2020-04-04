@@ -15,7 +15,7 @@ variable "aws_region_ec2"         {
 }
 
 variable "domainname" {
-    default = "amis-sig.nl"
+    default = "your-domain-name-in-AWS"
 }
 
 variable keyprefix {
