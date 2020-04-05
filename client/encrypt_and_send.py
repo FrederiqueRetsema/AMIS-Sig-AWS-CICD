@@ -10,7 +10,7 @@ import base64
 
 FILENAME           = "./sales.txt"
 NUMBER_OF_REQUESTS = 1
-KEY_PREFIX         = "alias/KeyF-"
+KEY_PREFIX         = "alias/KeyG-"
 
 # get_parameters: 
 # - check if there are two parameters and stop if there are not

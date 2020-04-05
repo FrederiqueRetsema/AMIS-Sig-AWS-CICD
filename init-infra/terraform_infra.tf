@@ -20,7 +20,7 @@ variable "domainname" {
 
 variable keyprefix {
    description = "Prefix for key. Change this if you get a 'key already exists' message on creation"
-   default = "KeyF-"
+   default = "KeyG-"
 }
 
 ##################################################################################
