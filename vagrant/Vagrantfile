@@ -44,9 +44,11 @@ Vagrant.configure(2) do |config|
   unzip terraform.zip
   rm terraform.zip
 
-  # Install boto3
+  # Install boto3 and requests
+  # - boto3    = AWS SDK for Python3
+  # - requests = used by the client to do a POST request to an url
   #
-  pip3 install boto3
+  pip3 install boto3 requests
 
   # Get the install script from S3
   curl https://frpublic.s3-eu-west-1.amazonaws.com/AMIS/install+scripts/sig-cicd-init-all.sh --output init-all.sh
