@@ -11,7 +11,7 @@ variable "prefix" {
 }
 
 variable "key-prefix" {
-    default = "KeyF-"
+    default = "KeyG-"
 }
 
 ##################################################################################
