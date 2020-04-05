@@ -20,7 +20,7 @@ variable "domainname" {
 
 variable keyprefix {
    description = "Prefix for key. Change this if you get a 'key already exists' message on creation"
-   default = "KeyE-"
+   default = "KeyF-"
 }
 
 ##################################################################################
@@ -104,23 +104,6 @@ EOF
 # Certificate: needed for use of domain within API gateway
 #
 
-resource "aws_acm_certificate" "cert" {
-  domain_name       = "*.${var.domainname}"
-  validation_method = "DNS"
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "aws_route53_record" "certificate_check_record" {
-    zone_id  = data.aws_route53_zone.my_zone.zone_id
-    name     = aws_acm_certificate.cert.domain_validation_options[0].resource_record_name
-    type     = aws_acm_certificate.cert.domain_validation_options[0].resource_record_type
-    records  = [aws_acm_certificate.cert.domain_validation_options[0].resource_record_value]
-    ttl      = "300"
-}
-
 
 # logs: needed to create entries in cloudwatch for this lambda policy
 # sns: needed to send a message to the next lambda function
@@ -156,11 +139,45 @@ EOF
 }
 
 # logs: needed to create entries in cloudwatch for this lambda policy
-# dynamodb: needed to create and update items (update does both)
+# sns: needed to send a message to the next lambda function
 # kms: needed because AWS will encrypt the parameter with a default kms key. The public key is needed
 #      to decrypt it.
 #      it will also be used to decrypt the encrypted text from the client ("till" that sends the number
 #      of sold items and the amout of money that is payed)
+
+resource "aws_iam_policy" "AMIS_CICD_lambda_decrypt_policy" {
+    name = "AMIS_CICD_lambda_decrypt_policy"
+    description = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
+    policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Action": [
+		  "logs:CreateLogGroup",
+		  "logs:CreateLogStream",
+		  "logs:PutLogEvents",
+		  "sns:Publish",
+                  "kms:GetPublicKey",
+                  "kms:Decrypt"
+                  ],
+		"Effect": "Allow",
+		"Resource": "*",
+                "Condition": {
+                   "StringEquals": {
+                       "aws:RequestedRegion": "${var.aws_region_sig}"
+                   }
+                }
+	}
+      ]
+}
+EOF
+}
+
+# logs: needed to create entries in cloudwatch for this lambda policy
+# dynamodb: needed to create and update items (update does both)
+# kms: needed because AWS will encrypt the parameter with a default kms key. The public key is needed
+#      to decrypt it.
 
 resource "aws_iam_policy" "AMIS_CICD_lambda_process_policy" {
     name = "AMIS_CICD_lambda_process_policy"
@@ -177,8 +194,7 @@ resource "aws_iam_policy" "AMIS_CICD_lambda_process_policy" {
 		  "dynamodb:GetItem",
 		  "dynamodb:UpdateItem",
 		  "dynamodb:PutItem",
-                  "kms:GetPublicKey",
-                  "kms:Decrypt"
+                  "kms:GetPublicKey"
                   ],
 		"Effect": "Allow",
 		"Resource": "*",
@@ -195,6 +211,26 @@ EOF
 
 resource "aws_iam_role" "AMIS_CICD_lambda_accept_role" {
     name = "AMIS_CICD_lambda_accept_role"
+    description =  "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
+    force_detach_policies = true
+    assume_role_policy =  <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "lambda.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+        }
+    ]
+}
+EOF
+} 
+
+resource "aws_iam_role" "AMIS_CICD_lambda_decrypt_role" {
+    name = "AMIS_CICD_lambda_decrypt_role"
     description =  "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     force_detach_policies = true
     assume_role_policy =  <<EOF
@@ -239,11 +275,18 @@ resource "aws_iam_policy_attachment" "policy_to_accept_role" {
    policy_arn = aws_iam_policy.AMIS_CICD_lambda_accept_policy.arn
 }
 
+resource "aws_iam_policy_attachment" "policy_to_decrypt_role" {
+   name       = "policy_to_decrypt_role"
+   roles      = [aws_iam_role.AMIS_CICD_lambda_decrypt_role.name]
+   policy_arn = aws_iam_policy.AMIS_CICD_lambda_decrypt_policy.arn
+}
+
 resource "aws_iam_policy_attachment" "policy_to_process_role" {
    name       = "policy_to_process_role"
    roles      = [aws_iam_role.AMIS_CICD_lambda_process_role.name]
    policy_arn = aws_iam_policy.AMIS_CICD_lambda_process_policy.arn
 }
+
 
 resource "aws_iam_user" "AMIS_user" {
     count                    = var.number_of_users
@@ -301,7 +344,7 @@ resource "aws_dynamodb_table" "AMIS-stores" {
 #    "storeID"         : {"S": "${var.nameprefix}${count.index + var.offset_number_of_users}"},
 #    "recordType"      : {"S": "store"},
 #    "itemID"          : {"N": "1234"},
-#    "itemDescription" : {"S": "Goudse kaas, oud 48+, 6 plakken"},
+#    "itemDescription" : {"S": "something"},
 #    "stock"           : {"N": "10000"},
 #    "sellingPrice"    : {"N": "3"},
 #    "grossAmount"     : {"N": "0"}
@@ -313,7 +356,4 @@ resource "aws_dynamodb_table" "AMIS-stores" {
 # OUTPUT
 ##################################################################################
 
-#output "passwords" {
-#  value = aws_iam_user_login_profile.AWS_SIG_Login_profile[*].encrypted_password
-#}
 

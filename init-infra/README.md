@@ -1,4 +1,5 @@
 # init-infra
+
 These scripts are used to initialize the CI/CD workshop for AMIS. See other directories for a description of
 the workshop. When you want to initialize an environment yourself and if you are new to the combination of
 Terraform and AWS, it might be easyer to go to the vagrant directory and use vagrant to set up the
@@ -6,16 +7,26 @@ environment for you. You will find more information in the README.md file in the
 ignore the rest of the README.md you are reading now.
 
 ## Before initialization
+
 Before using these scripts, download Terraform version 0.12.24 and unzip the downloadfile. Put the
 terraform.exe file in the root of the directory that this directory is in (or change the batch scripts).
 The server where these scripts are used must also have the AWS CLI, Python3 and boto3 installed.
 
 The scripts use access keys of a user that is able to create, change and delete IAM users, groups, policies.
-It also needs permission on KMS keys, DynamoDB, Route53, CertificateManager, Systems Manager etc.
+It also needs permission on KMS keys, DynamoDB, Route53, Systems Manager etc.
 
-Copy terraforms-template.tfvars to \terraform.tfvars and change the content: add the access key and the
+Copy terraforms-template.tfvars to ../../terraform.tfvars and change the content: add the access key and the
 secret access key of an administrative user to this file, change other parameters if you want to and run
 the init-infra.sh script.
+
+__WARNING__: you need a star certificate for your domain name. For example, when you use retsema.eu as domain
+name, you need a certificate *.retsema.eu . Terraform can create this for you, but it is not part of this
+init: when you use init-infra.sh and destroy-infra.sh a lot, then you will reach the AWS limit for the max 
+number of certificates per year, which is by default 20.
+
+To help you, you can request this certificate by using the `init-cert.sh` script in the directory ../init-cert
+This will, however, not be part of the automated scripts in this directory, to prevent you to reach the AWS 
+service limit.
 
 ## List of parameters in ../../terraform.tfvars
 
@@ -32,6 +43,7 @@ domainname             = "retsema.eu"             (domain name that is used for 
 ```
 
 ## Changes for AWS CLI
+
 The AWS CLI is used in the scripts. Please install the AWS CLI (yum install aws-cli -y) and use `aws configure` to add AWS access key, secret access key, default region (which should be the SIG region) to your machine.
 
 ## Shell scripts
@@ -44,8 +56,7 @@ This script will use terraform-init.tf to create all relevant objects:
 - IAM: users, groups, policies, roles. In general, one role will be used for all users.
 - KMS: one key per user. The prefix of this key is defined in the terraform-infra.tf file. When you destroyed keys from the GUI, AWS will wait for 31 days before deleting the key. The GUI will not permit you to delete the name of the key (and when Terraform creates a new key, then this key name must be different than the key that is already pending a destroy).
 - DynamoDB: there is one DynamoDB table for all the shops. The DynamoDB table might also be filled differently for Acceptance and Production (though this is not further discussed/implemented).
-- Route53: new hosted zone (domain) for internal usage. Is used within the shop example to be rid of the random http addresses like https://wmfmq9t91a.execute-api.eu-west-1.amazonaws.com/prod/shop. To be able to use better names like https://amis0.retsema.eu/shop, we need a certificate. To be able to create a certificate, the DNS is checked to see if you own the domain. For that purpose, a CNAME entry is added to the domain.
-- CertificateManagement: a certificate will be created for the domain. Please mind, that creating a certificate can take some minutes. When the process hasn't finished yet, creating shop items with `init-shop.sh` might fail.
+- Route53: new hosted zone (domain) for internal usage. Is used within the shop example to be rid of the random http addresses like https://wmfmq9t91a.execute-api.eu-west-1.amazonaws.com/prod/shop. To be able to use better names like https://amis0.retsema.eu/shop, we need a certificate.
 
 After using the terraform script to create users, the CLI is used for adding easy-to-remember passwords to the users (Terraform has no way to create an initial password).
 Python is used for adding records to the DynamoDB database. On this moment, Terraform will create an error if you add records to a table with a secundary index.

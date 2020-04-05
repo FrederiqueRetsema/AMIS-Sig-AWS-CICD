@@ -11,7 +11,7 @@ variable "prefix" {
 }
 
 variable "key-prefix" {
-    default = "KeyE-"
+    default = "KeyF-"
 }
 
 ##################################################################################
@@ -30,6 +30,10 @@ provider "aws" {
 
 data "aws_iam_role" "lambda_accept_role" {
     name = "AMIS_CICD_lambda_accept_role"
+}
+
+data "aws_iam_role" "lambda_decrypt_role" {
+    name = "AMIS_CICD_lambda_decrypt_role"
 }
 
 data "aws_iam_role" "lambda_process_role" {
@@ -140,6 +144,44 @@ resource "aws_lambda_function" "accept" {
     runtime = "python3.8"
     environment {
         variables = {
+            to_decrypt_topic_arn = aws_sns_topic.to_decrypt.arn
+        }
+    }
+}
+
+# SNS topic to_decrypt
+# - For a description of the resend policies for Lambda, see https://docs.aws.amazon.com/sns/latest/dg/sns-message-delivery-retries.html
+
+resource "aws_sns_topic" "to_decrypt" {
+  name = "${var.prefix}_to_decrypt"
+}
+
+resource "aws_sns_topic_subscription" "decrypt_to_lambda" {
+  topic_arn = aws_sns_topic.to_decrypt.arn
+  protocol  = "lambda"
+  endpoint  = aws_lambda_function.decrypt.arn
+}
+
+# Lambda permission
+resource "aws_lambda_permission" "lambda_decrypt_permission" {
+  statement_id  = "AllowExecutionFromSNS"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.decrypt.function_name
+  principal     = "sns.amazonaws.com"
+  source_arn    = aws_sns_topic.to_decrypt.arn
+}
+
+# Lambda process
+
+resource "aws_lambda_function" "decrypt" {
+    function_name = "${var.prefix}_decrypt"
+    filename = "./lambdas/decrypt/decrypt.zip"
+    role = data.aws_iam_role.lambda_decrypt_role.arn
+    handler = "process.lambda_handler"
+    runtime = "python3.8"
+    environment {
+        variables = {
+            key_prefix           = var.key-prefix,
             to_process_topic_arn = aws_sns_topic.to_process.arn
         }
     }
