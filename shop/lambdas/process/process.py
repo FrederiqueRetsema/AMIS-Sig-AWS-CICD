@@ -7,12 +7,10 @@ from botocore.exceptions import ClientError
 
 def get_shop_and_decrypted_content(event):
   message = json.loads(event["Records"][0]["Sns"]["Message"])
-  body = json.loads(message["body"])
-  
-  print("body = "+str(body))
-  
-  shop = body["shop"]
-  decrypted_content = bytearray(body["decrypted_content"], "utf-8")
+  print(message)
+
+  shop = message["shop"]
+  decrypted_content = json.loads(message["decrypted_content"])
 
   return {"shop": shop, "decrypted_content": decrypted_content}
 
@@ -53,19 +51,22 @@ def update_dynamodb(shop, sales):
   return {"succeeded": succeeded}
 
 def lambda_handler(event, context):
+  print(event)
 
   decrypted_content = ""
 
-  # There is a lot of information in the event parameter, but we are only interested in the shop and content_base64 values
-  # (Other lambda functions that are connected to the same SNS topic might use more parameters)
   response          = get_shop_and_decrypted_content(event)
   shop              = response["shop"]
-  decrypted_content = response["content_base64"]
+  decrypted_content = json.loads(response["decrypted_content"])
+
+  print("decrypted_content:")
+  print(decrypted_content)
 
   # Update the DynamoDB table
   response  = update_dynamodb(shop, decrypted_content["sales"])
   succeeded = response["succeeded"]
 
   print("DONE: event: "+str(event)+", shop: "+shop+", succeeded: "+str(response["succeeded"])+", context.get_remaining_time_in_millis(): "+str(context.get_remaining_time_in_millis())+", context.memory_limit_in_mb: "+str(context.memory_limit_in_mb))
+
 
 

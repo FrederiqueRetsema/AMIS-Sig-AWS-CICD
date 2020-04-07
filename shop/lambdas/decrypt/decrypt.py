@@ -14,17 +14,121 @@ from botocore.exceptions import ClientError
 #     response = get_shop_and_content_base64(event)
 #   File "/var/task/process.py", line 10, in get_shop_and_content_base64
 #     message = json.loads(event["Records"][0]["Sns"]["Message"])
+#
+# Tbd: https://stackoverflow.com/questions/31954507/handle-a-keyerror-while-parsing-json
+
+# check_event_structure
+# ---------------------
+# This function processes input from SNS. We use a limited amount of data from that, but
+# we do expect the event data to have a certain structure. When, for example, a simple
+# test is done from within the Lambda gui, then the function will fail with a key error.
+# We want a more gracefull way of dealing with this error.
+# 
+# Check the following structure:
+#
+# { 
+#  "Records": [           <-- exactly 1 record (will not be checked by this fuction, 
+#                             second and more records are ignored: SNS will not send 
+#                             more than one record: see https://aws.amazon.com/sns/faqs/ 
+#                             section Reliability)
+#       "Sns" : {
+#                  "Message" : "{
+#                       ...mind that Message is a string, containing json...
+#                                  "body" : "{"shop": "[...]", "content_base_64" : "[...]"}"
+#                                             ...mind that body is a string, containing json...
+# }
+#    ]
+# }
+
+def check_event_structure(event):
+  # Base assumption: correct event structure
+  succeeded = True
+
+  # Check for Records:
+  if ('Records' in event):
+       
+    # Check if there is just one element in records
+    if (len(event["Records"]) == 1):
+      
+      # Check if the element contains "Sns"
+      if ('Sns' in event["Records"][0]):
+              
+        # Check if "Sns" contains "Message"
+        if ('Message' in event["Records"][0]["Sns"]):
+                
+          # Check if "Message" contains "body"
+          if 'body' in event["Records"][0]["Sns"]["Message"]:
+                  
+            # Check if the body is valid json:
+            try:
+              body = json.loads(event["Records"][0]["Sns"]["Message"])["body"]
+              print("body: "+str(body))
+                  
+              # Check if the element "shop" is present in the "body":
+              if ('shop' in body):
+                      
+                # Check if the element "content_base64" is present in the "body":
+                if ('content_base64' in body):
+                        
+                  # Great: this is a valid message. Don't do anything
+                  print("Valid event structure")
+                      
+                else:
+                  print("ERROR in event structure: no content_base_64 in body")
+                  succeeded = False
+
+              else:
+                print("ERROR in event structure: no shop in body")
+                succeeded = False
+                  
+            except ClientError as e:
+              print("ERROR in event structure: no valid json in body, " +str(e))
+              succeeded = False
+          else: 
+            print("ERROR in event structure: no body in Message")
+            succeeded = False
+            
+        else:
+          print("ERROR in event structure: no Message in Sns")
+          succeeded = False
+                
+      else:
+        print("ERROR in event structure: no Sns in element")
+        succeeded = False
+              
+    else:
+      print("ERROR in event structure: not at exactly one element in list Records")
+      succeeded = False
+        
+  else:
+    print("ERROR in event structure: no element Records in event")
+    succeeded = False
+    
+  return {"succeeded": succeeded}
+
+# get_shop_and_content_base64(event)
+# ----------------------------------
+# This function extracts the fields that we are interested in: shop and content_base64. 
+# All other fields are ignored.
+#
+# Input : event (from SNS)
+# Output: shop
+#         content_base64  
+#
 
 def get_shop_and_content_base64(event):
+
   message = json.loads(event["Records"][0]["Sns"]["Message"])
   body = json.loads(message["body"])
-  
-  print("body = "+str(body))
   
   shop = body["shop"]
   content_base64 = bytearray(body["content_base64"], "utf-8")
 
   return {"shop": shop, "content_base64": content_base64}
+
+# decrypt
+# -------
+# 
 
 def decrypt(shop, encrypted_content):
   try:
@@ -37,23 +141,21 @@ def decrypt(shop, encrypted_content):
       KeyId = key,
       EncryptionAlgorithm="RSAES_OAEP_SHA_256")
     decrypted_content = response["Plaintext"]
+    decrypted_content = decrypted_content.decode("utf-8")
+
     succeeded = True
+
   except ClientError as e:
+    print("ERROR:" + shop + " - " + str(encrypted_content) + " - " + str(e))
+
     succeeded = False
     decrypted_content = ""
-    print("ERROR:" + shop + " - " + str(encrypted_content) + " - " + str(e))
 
   return {"succeeded": succeeded, "decrypted_content": decrypted_content}
 
 def send_to_process_sns_topic(shop, decrypted_content):
 
   try: 
-
-    # Log content of the data that we received from the API Gateway
-    # The output is send to CloudWatch
-    #
-
-    print("TRY: event:"+str(event))
 
     # Initialize the SNS module and get the topic arn. 
     # These are placed in the environment variables of the accept function by the Terraform script
@@ -64,10 +166,11 @@ def send_to_process_sns_topic(shop, decrypted_content):
 
     # Publish the shop and the decrypted content to the SNS topic
     #
+    data = { "shop": shop, "decrypted_content": str(json.dumps(decrypted_content))}
 
     sns.publish(
       TopicArn = sns_process_topic_arn,
-      Message = json.dumps(event)
+      Message = json.dumps(data)
     )
 
     succeeded = True
@@ -87,29 +190,42 @@ def send_to_process_sns_topic(shop, decrypted_content):
 def lambda_handler(event, context):
 
   decrypted_content = ""
+  shop = ""
 
   # There is a lot of information in the event parameter, but we are only interested in the shop and content_base64 values
   # (Other lambda functions that are connected to the same SNS topic might use more parameters)
   #
-  response          = get_shop_and_content_base64(event)
-  shop              = response["shop"]
-  content_base64    = response["content_base64"]
-  encrypted_content = base64.standard_b64decode(content_base64)
-
-  # Decrypt the content, using the shop ID as part of the key name
+  # But first, check that the elements that we DO need, are there
   #
-  response          = decrypt(shop, encrypted_content)
-  decrypted_content = response["decrypted_content"]
-
-  # When this succeeded, send the content to the SNS topic to process the data.
-  #
-  if (response["succeeded"]):
+  response          = check_event_structure(event)
+  succeeded         = response["succeeded"]
+  
+  if (succeeded):
     
-    # Temporary code, just to show that the object that we decrypted is valid JSON
-    response = send_to_process_sns_topic(shop, json.loads(decrypted_content))
+    # Get the shop and the encrypted data from the event data
+    #
+    
+    response          = get_shop_and_content_base64(event)
+    shop              = response["shop"]
+    content_base64    = response["content_base64"]
+  
+    encrypted_content = base64.standard_b64decode(content_base64)
 
-  print("DONE: Shop: "+shop+", succeeded: "+str(response["succeeded"])+", event: "+str(event)+", decrypted_content: "+str(decrypted_content)+", context.get_remaining_time_in_millis(): "+str(context.get_remaining_time_in_millis())+", context.memory_limit_in_mb: "+str(context.memory_limit_in_mb))
+    # Decrypt the content, using the shop ID as part of the key name
+    #
+    response          = decrypt(shop, encrypted_content)
+    decrypted_content = response["decrypted_content"]
+
+    # When this succeeded, send the content to the SNS topic to process the data.
+    #
+    if (response["succeeded"]):
+
+      response = send_to_process_sns_topic(shop, decrypted_content)
+
+  print("DONE: Shop: "+shop+", succeeded: "+str(response["succeeded"])+", event: "+str(event)+", decrypted_content: "+json.dumps(decrypted_content)+", context.get_remaining_time_in_millis(): "+str(context.get_remaining_time_in_millis())+", context.memory_limit_in_mb: "+str(context.memory_limit_in_mb))
 
   # This is a function which is placed after an SNS topic. It doesn't make sense to return content
   #
   return
+
+

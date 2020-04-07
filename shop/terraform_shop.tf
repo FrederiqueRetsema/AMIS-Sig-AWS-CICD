@@ -177,7 +177,7 @@ resource "aws_lambda_function" "decrypt" {
     function_name = "${var.prefix}_decrypt"
     filename = "./lambdas/decrypt/decrypt.zip"
     role = data.aws_iam_role.lambda_decrypt_role.arn
-    handler = "process.lambda_handler"
+    handler = "decrypt.lambda_handler"
     runtime = "python3.8"
     environment {
         variables = {
