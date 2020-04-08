@@ -109,9 +109,10 @@ resource "aws_iam_policy" "AMIS_CICD_policy" {
       {
 
         "Action": [
-                  "route53:GetHostedZone",
                   "route53:ListResourceRecordSets",
-                  "route53:ListTagsForResource"
+                  "route53:ListTagsForResource",
+                  "route53:GetHostedZone",
+                  "route53:ChangeResourceRecordSets"
                 ],
 		"Effect": "Allow",
 	        "Resource": "arn:aws:route53:::hostedzone/${data.aws_route53_zone.zone.zone_id}"
@@ -140,6 +141,7 @@ resource "aws_iam_policy" "AMIS_CICD_policy" {
         "Action": [
                   "route53:ListHostedZones",
                   "route53:GetHostedZoneCount",
+                  "route53:GetChange",
                   "iam:ListRoles",
                   "iam:ListPolicies",
                   "kms:ListKeys",
