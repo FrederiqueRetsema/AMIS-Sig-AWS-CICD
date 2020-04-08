@@ -7,7 +7,8 @@ variable "aws_secret_key"         {}
 
 variable "number_of_users"        {}
 variable "offset_number_of_users" {}
-variable "nameprefix"             {}
+variable "name_prefix"            {}
+variable "account_number"         {}
 
 variable "aws_region_sig"         {}
 variable "aws_region_ec2"         {
@@ -18,7 +19,7 @@ variable "domainname" {
     default = "your-domain-name-in-AWS"
 }
 
-variable keyprefix {
+variable key_prefix {
    description = "Prefix for key. Change this if you get a 'key already exists' message on creation"
    default = "KeyG-"
 }
@@ -37,9 +38,12 @@ provider "aws" {
 # DATA
 ##################################################################################
 
-data "aws_route53_zone" "my_zone" {
-    name         = var.domainname
-    private_zone = false
+data "aws_acm_certificate" "domain_certificate" {
+    domain = "*.${var.domainname}"
+}
+
+data "aws_route53_zone" "zone" {
+    name = var.domainname
 }
 
 ##################################################################################
@@ -50,22 +54,38 @@ data "aws_route53_zone" "my_zone" {
 # Create as many keys as users
 #
 
+# Key itself
+
 resource "aws_kms_key" "amis" {
     count                    = var.number_of_users
-    description              = "${var.nameprefix}${count.index + var.offset_number_of_users}"
+    description              = "${var.name_prefix}${count.index + var.offset_number_of_users}"
     key_usage                = "ENCRYPT_DECRYPT"
     customer_master_key_spec = "RSA_2048"
 }
 
+# Alias ("name") for the key
 
 resource "aws_kms_alias" "amis" {
   count          = var.number_of_users
-  name           = "alias/${var.keyprefix}${var.nameprefix}${count.index + var.offset_number_of_users}"
+  name           = "alias/${var.key_prefix}${var.name_prefix}${count.index + var.offset_number_of_users}"
   target_key_id  = aws_kms_key.amis[count.index].key_id 
 }
 
+#
+# IAM policies
+#
+
+# Policy for the users (both UI and CLI/SDK)
+#
+# The AWS services that we use in the shop example (API Gateway, Lambda, SNS, DynamoDB) can be used 
+# without restrictions in the region that we use.
+#
+# The AWS services that are global (Route53, certificates, IAM) can be seen but not be modified.
+#
+
 resource "aws_iam_policy" "AMIS_CICD_policy" {
-    name = "AMIS_CICD_Policy"
+    count = var.number_of_users
+    name  = "${var.name_prefix}${count.index + var.offset_number_of_users}_CICD_Policy"
     description = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     policy = <<EOF
 {
@@ -73,24 +93,64 @@ resource "aws_iam_policy" "AMIS_CICD_policy" {
     "Statement": [
       {
         "Action": [
-                  "apigateway:*",
-		  "lambda:*",
-                  "sns:*",
-                  "dynamodb:*",
                   "acm:ListCertificates",
-                  "acm:DescribeCertificate",
-                  "route53:*",
-		  "cloudformation:*",
-		  "cloudwatch:describe*",
-		  "cloudwatch:get*",
-                  "iam:ListRoles",
+                  "acm:ListTagsForCertificate"
+		],
+		"Effect": "Allow",
+		"Resource": "*"
+      },
+      {
+        "Action": [
+                  "acm:DescribeCertificate"
+		],
+		"Effect": "Allow",
+		"Resource": "${data.aws_acm_certificate.domain_certificate.arn}"
+      },
+      {
+
+        "Action": [
+                  "route53:GetHostedZone",
+                  "route53:ListResourceRecordSets",
+                  "route53:ListTagsForResource"
+                ],
+		"Effect": "Allow",
+	        "Resource": "arn:aws:route53:::hostedzone/${data.aws_route53_zone.zone.zone_id}"
+      },
+      {
+        "Action": [
                   "iam:ListRolePolicies",
                   "iam:ListAttachedRolePolicies",
                   "iam:GetRole",
                   "iam:GetPolicy",
                   "iam:GetPolicyVersion",
-                  "iam:PassRole",
+                  "iam:PassRole"
+		],
+		"Effect": "Allow",
+		"Resource": ["arn:aws:iam::${var.account_number}:role/AMIS*",
+                             "arn:aws:iam::${var.account_number}:policy/AMIS*"]
+      },
+      {
+        "Action": [
                   "kms:GetPublicKey"
+		],
+		"Effect": "Allow",
+		"Resource": "arn:aws:kms:eu-west-1:${var.account_number}:key/${aws_kms_key.amis[count.index].arn}"
+      },
+      {
+        "Action": [
+                  "route53:ListHostedZones",
+                  "route53:GetHostedZoneCount",
+                  "iam:ListRoles",
+                  "iam:ListPolicies",
+                  "kms:ListKeys",
+                  "kms:ListAliases",
+                  "apigateway:*",
+		  "lambda:*",
+                  "sns:*",
+                  "dynamodb:*",
+		  "cloudformation:*",
+		  "cloudwatch:describe*",
+		  "cloudwatch:get*"
 		],
 		"Effect": "Allow",
 		"Resource": "*"
@@ -99,11 +159,6 @@ resource "aws_iam_policy" "AMIS_CICD_policy" {
 }
 EOF
 }
-
-#
-# Certificate: needed for use of domain within API gateway
-#
-
 
 # logs: needed to create entries in cloudwatch for this lambda policy
 # sns: needed to send a message to the next lambda function
@@ -290,7 +345,7 @@ resource "aws_iam_policy_attachment" "policy_to_process_role" {
 
 resource "aws_iam_user" "AMIS_user" {
     count                    = var.number_of_users
-    name                     = "${var.nameprefix}${count.index + var.offset_number_of_users}"
+    name                     = "${var.name_prefix}${count.index + var.offset_number_of_users}"
     force_destroy            = true
 }
 
@@ -305,8 +360,9 @@ resource "aws_iam_group_membership" "SIG_CICD" {
 }
 
 resource "aws_iam_group_policy_attachment" "SIG_CICD_Policy_attachment" {
+    count      = var.number_of_users
     group      = aws_iam_group.AMIS_group.name
-	policy_arn =  aws_iam_policy.AMIS_CICD_policy.arn
+    policy_arn = aws_iam_policy.AMIS_CICD_policy[count.index].arn
 }
 
 #
@@ -341,7 +397,7 @@ resource "aws_dynamodb_table" "AMIS-stores" {
 #
 #    item = <<ITEM
 #{
-#    "storeID"         : {"S": "${var.nameprefix}${count.index + var.offset_number_of_users}"},
+#    "storeID"         : {"S": "${var.name_prefix}${count.index + var.offset_number_of_users}"},
 #    "recordType"      : {"S": "store"},
 #    "itemID"          : {"N": "1234"},
 #    "itemDescription" : {"S": "something"},

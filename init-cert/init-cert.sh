@@ -1,7 +1,7 @@
 # init-cert.sh
 # ------------
 # Used to initialise the certificate
-#
+
 # WARNING: Be aware, that using init-cert.sh and destroy-cert.sh a lot, might lead into
 # errors in AWS: you are allowed to request 20 certificates per year. 
 

@@ -10,11 +10,12 @@ rest of this information.
 ## Before initialization
 
 Before using these scripts, download Terraform version 0.12.24 and unzip the downloadfile. Put the
-terraform.exe file in the root of the directory that this directory is in (or change the batch scripts).
-The server where these scripts are used must also have the AWS CLI, Python3 and boto3 installed (though
-this specific directory only uses Terraform).
+terraform.exe file one level before the gitlab directory is. Relative to this path, this is in ../.. 
+(or change the batch scripts). The server where these scripts are used must also have the AWS CLI, 
+Python3 and boto3 installed (though this specific directory only uses Terraform).
 
-The scripts use access keys of a user that is able to create and delete a certificate in the CertificateManager.
+The scripts use access keys of a user that is able to create and delete a certificate in the 
+CertificateManager.
 
 Copy terraforms-template.tfvars from ../init-infra to ../../terraform.tfvars and change the content: add the 
 access key and the secret access key of an administrative user to this file. The cert scripts further only
@@ -35,7 +36,7 @@ This script will use terraform-init.tf to create all relevant objects:
 - CertificateManagement: a certificate will be created for the domain. Please mind, that creating a certificate can take some minutes. When the certificate isn't checked yet, creating shop items with `init-shop.sh` might fail.
 - Route53: to be able to check if the domain that you request a certificate for really belongs to you, AWS asks you to add a CNAME record in the DNS. This is done automatically by this Terraform script (assuming you use Route53)
 
-After using `init-cert.sh`, you are ready to use `init-infra.sh` (in the init-infra directory) to create the other infra objects and `init-shop.sh` (in the shop directory) to create shop objects.
+After using `init-cert.sh`, you are ready to use `init-infra.sh` (in the init-infra directory) to create the other infra objects and, after that, `init-shop.sh` (in the shop directory) to create shop objects.
 
 ### `destroy-cert.sh`
 

@@ -19,7 +19,7 @@ KEY_PREFIX         = "alias/KeyG-"
 def get_parameters():
 
   if (len(sys.argv) != 3):
-      print ("Add two arguments, f.e. ./encrypt.py AMIS1 https://amis1.retsema.eu/shop")
+      print ("Add two arguments, f.e. ./encrypt_and_send.py AMIS1 https://amis1.retsema.eu/shop")
       sys.exit(1)
 
   shop      = sys.argv[1]

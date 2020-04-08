@@ -9,8 +9,9 @@ ignore the rest of the README.md you are reading now.
 ## Before initialization
 
 Before using these scripts, download Terraform version 0.12.24 and unzip the downloadfile. Put the
-terraform.exe file in the root of the directory that this directory is in (or change the batch scripts).
-The server where these scripts are used must also have the AWS CLI, Python3 and boto3 installed.
+terraform.exe file in the same directory as you used the git clone command: the scripts use the relative
+directory ../.. for this (you might want to change the batch scripts if this is different in your 
+environment).The server where these scripts are used must also have the AWS CLI, Python3 and boto3 installed.
 
 The scripts use access keys of a user that is able to create, change and delete IAM users, groups, policies.
 It also needs permission on KMS keys, DynamoDB, Route53, Systems Manager etc.
@@ -38,8 +39,14 @@ offset_number_of_users = 0                        (number to add to the first us
 aws_region_sig         = "eu-west-1"              (region for the SIG: pipelines and shops are build in this region)
 aws_region_ec2         = "eu-west-2"              (region for the virtual machines)
 nameprefix             = "AMIS"                   (prefix for all objects: users, groups, policies, SNS topics, Lambda functions, etc)
-domainname             = "retsema.eu"             (domain name that is used for the SIG, this should be an internal 
-                                                   domain name that doesn't exist on the public internet).
+domainname             = "retsema.eu"             (domain name that is used for the SIG, this should be an internal domain name that 
+                                                   doesn't exist on the public internet).
+keyprefix              = "KeyG-"                  (when something goes wrong with destroying the environment, then the keys are 
+                                                   destroyed but the aliases are not disconnected. When you try to create a new key 
+                                                   with the same label (f.e. KeyG-AMIS1) then this will fail, even when the key is 
+                                                   marked for deletion. Please change this name on four places: 
+                                                   ../../terraform.tfvars, ../shop/terraform-shop.py, ../client/encrypt_and_send.py, 
+                                                   ../client/100x.py)
 ```
 
 ## Changes for AWS CLI
@@ -53,10 +60,9 @@ The following shell scripts exist:
 ### `init-infra.sh`
 
 This script will use terraform-init.tf to create all relevant objects:
-- IAM: users, groups, policies, roles. In general, one role will be used for all users.
+- IAM: users, groups, policies, roles. One role and one policy will be used for all users. There are (three) different roles and policies for the accept, the decrypt and the process Lambda function. These are general roles, not on a per-user base.
 - KMS: one key per user. The prefix of this key is defined in the terraform-infra.tf file. When you destroyed keys from the GUI, AWS will wait for 31 days before deleting the key. The GUI will not permit you to delete the name of the key (and when Terraform creates a new key, then this key name must be different than the key that is already pending a destroy).
 - DynamoDB: there is one DynamoDB table for all the shops. The DynamoDB table might also be filled differently for Acceptance and Production (though this is not further discussed/implemented).
-- Route53: new hosted zone (domain) for internal usage. Is used within the shop example to be rid of the random http addresses like https://wmfmq9t91a.execute-api.eu-west-1.amazonaws.com/prod/shop. To be able to use better names like https://amis0.retsema.eu/shop, we need a certificate.
 
 After using the terraform script to create users, the CLI is used for adding easy-to-remember passwords to the users (Terraform has no way to create an initial password).
 Python is used for adding records to the DynamoDB database. On this moment, Terraform will create an error if you add records to a table with a secundary index.

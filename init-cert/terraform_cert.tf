@@ -24,6 +24,10 @@ variable "domainname" {
     default = "your-domain-name-in-AWS"
 }
 
+variable "account_number"         {
+    description = "Is not used in this script. Declaration is done to prevent warnings."
+}
+
 variable keyprefix {
     description = "Is not used in this script. Declaration is done to prevent warnings."
 }
@@ -63,6 +67,11 @@ resource "aws_acm_certificate" "cert" {
     create_before_destroy = true
   }
 }
+
+#
+# Check record in Route53: AWS will use this to look if you are the owner of 
+# the domain that the certificate is requested for.
+#
 
 resource "aws_route53_record" "certificate_check_record" {
     zone_id  = data.aws_route53_zone.my_zone.zone_id

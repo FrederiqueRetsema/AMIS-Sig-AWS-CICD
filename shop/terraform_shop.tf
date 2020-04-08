@@ -5,14 +5,9 @@
 variable "aws_access_key" {}
 variable "aws_secret_key" {}
 variable "domainname"     {}
-
-variable "prefix" {
-    default = "AMIS0"
-}
-
-variable "key-prefix" {
-    default = "KeyG-"
-}
+variable "user_prefix"    {}
+variable "key_prefix"     {}
+variable "region_sig"     {}
 
 ##################################################################################
 # PROVIDERS
@@ -21,7 +16,7 @@ variable "key-prefix" {
 provider "aws" {
   access_key = var.aws_access_key
   secret_key = var.aws_secret_key
-  region     = "eu-west-1"
+  region     = var.region_sig
 }
 
 ##################################################################################
@@ -40,7 +35,7 @@ data "aws_iam_role" "lambda_process_role" {
     name = "AMIS_CICD_lambda_process_role"
 }
 
-data "aws_acm_certificate" "mydomain_certificate" {
+data "aws_acm_certificate" "domain_certificate" {
     domain = "*.${var.domainname}"
 }
 
@@ -56,7 +51,7 @@ data "aws_route53_zone" "my_zone" {
 
 resource "aws_route53_record" "my_shop_dns_record" {
     zone_id = data.aws_route53_zone.my_zone.zone_id
-    name    = lower(var.prefix)
+    name    = lower(var.user_prefix)
     type    = "A"
 
     alias {
@@ -69,13 +64,13 @@ resource "aws_route53_record" "my_shop_dns_record" {
 # Connection to certificate
 
 resource "aws_acm_certificate_validation" "mycertificate_validation" {
-    certificate_arn = data.aws_acm_certificate.mydomain_certificate.arn
+    certificate_arn = data.aws_acm_certificate.domain_certificate.arn
 }
 
 # API Gateway
 
 resource "aws_api_gateway_domain_name" "API_Gateway_domain_name" {
-  domain_name              = "${lower(var.prefix)}.${var.domainname}"
+  domain_name              = "${lower(var.user_prefix)}.${var.domainname}"
   regional_certificate_arn = aws_acm_certificate_validation.mycertificate_validation.certificate_arn
   security_policy = "TLS_1_2"
   endpoint_configuration {
@@ -90,7 +85,7 @@ resource "aws_api_gateway_base_path_mapping" "map_shop_prod_to_api_gateway_domai
 }
 
 resource "aws_api_gateway_rest_api" "API_Gateway" {
-  name        = "${var.prefix}_API_Gateway"
+  name        = "${var.user_prefix}_API_Gateway"
   description = "Part of workshop on 01-07-2020"
   endpoint_configuration {
     types = ["REGIONAL"]
@@ -137,7 +132,7 @@ resource "aws_lambda_permission" "lambda_accept_permission" {
 # Lambda accept
 
 resource "aws_lambda_function" "accept" {
-    function_name = "${var.prefix}_accept"
+    function_name = "${var.user_prefix}_accept"
     filename = "./lambdas/accept/accept.zip"
     role = data.aws_iam_role.lambda_accept_role.arn
     handler = "accept.lambda_handler"
@@ -153,7 +148,7 @@ resource "aws_lambda_function" "accept" {
 # - For a description of the resend policies for Lambda, see https://docs.aws.amazon.com/sns/latest/dg/sns-message-delivery-retries.html
 
 resource "aws_sns_topic" "to_decrypt" {
-  name = "${var.prefix}_to_decrypt"
+  name = "${var.user_prefix}_to_decrypt"
 }
 
 resource "aws_sns_topic_subscription" "decrypt_to_lambda" {
@@ -174,14 +169,14 @@ resource "aws_lambda_permission" "lambda_decrypt_permission" {
 # Lambda process
 
 resource "aws_lambda_function" "decrypt" {
-    function_name = "${var.prefix}_decrypt"
+    function_name = "${var.user_prefix}_decrypt"
     filename = "./lambdas/decrypt/decrypt.zip"
     role = data.aws_iam_role.lambda_decrypt_role.arn
     handler = "decrypt.lambda_handler"
     runtime = "python3.8"
     environment {
         variables = {
-            key_prefix           = var.key-prefix,
+            key_prefix           = var.key_prefix,
             to_process_topic_arn = aws_sns_topic.to_process.arn
         }
     }
@@ -191,7 +186,7 @@ resource "aws_lambda_function" "decrypt" {
 # - For a description of the resend policies for Lambda, see https://docs.aws.amazon.com/sns/latest/dg/sns-message-delivery-retries.html
 
 resource "aws_sns_topic" "to_process" {
-  name = "${var.prefix}_to_process"
+  name = "${var.user_prefix}_to_process"
 }
 
 resource "aws_sns_topic_subscription" "process_to_lambda" {
@@ -212,14 +207,14 @@ resource "aws_lambda_permission" "lambda_process_permission" {
 # Lambda process
 
 resource "aws_lambda_function" "process" {
-    function_name = "${var.prefix}_process"
+    function_name = "${var.user_prefix}_process"
     filename = "./lambdas/process/process.zip"
     role = data.aws_iam_role.lambda_process_role.arn
     handler = "process.lambda_handler"
     runtime = "python3.8"
     environment {
         variables = {
-            key_prefix = var.key-prefix
+            key_prefix = var.key_prefix
         }
     }
 }
