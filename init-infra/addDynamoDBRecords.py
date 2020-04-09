@@ -38,36 +38,36 @@ def add_records(prefix, offset, number_of_users):
     dynamodb.put_item(
       TableName='AMIS-stores',
       Item={
-          'storeID'          : {'S': prefix+str(userNumber+offset)},
-          'recordType'       : {'S': 's-00098'},
-          'stock'            : {'N': '100000'},
-          'grossTurnover'    : {'N': '0'},
-          'grossNumber'      : {'N': '0'},
-          'itemDescription'  : {'S': '250g Butter'},
-          'sellingPrice'     : {'N': '2.45'}})
+          'store_id'          : {'S': prefix+str(userNumber+offset)},
+          'record_type'       : {'S': 's-00098'},
+          'stock'             : {'N': '100000'},
+          'gross_turnover'    : {'N': '0'},
+          'gross_number'      : {'N': '0'},
+          'item_description'  : {'S': '250g Butter'},
+          'selling_price'     : {'N': '2.45'}})
 
     
     dynamodb.put_item(
       TableName='AMIS-stores',
       Item={
-          'storeID'          : {'S': prefix+str(userNumber+offset)},
-          'recordType'       : {'S': 's-12345'},
-          'stock'            : {'N': '100000'},
-          'grossTurnover'    : {'N': '0'},
-          'grossNumber'      : {'N': '0'},
-          'itemDescription'  : {'S': '1 kg Chees'},
-          'sellingPrice'     : {'N': '12.15'}})
+          'store_id'          : {'S': prefix+str(userNumber+offset)},
+          'record_type'       : {'S': 's-12345'},
+          'stock'             : {'N': '100000'},
+          'gross_turnover'    : {'N': '0'},
+          'gross_number'      : {'N': '0'},
+          'item_description'  : {'S': '1 kg Chees'},
+          'selling_price'     : {'N': '12.15'}})
     
     dynamodb.put_item(
       TableName='AMIS-stores',
       Item={
-          'storeID'          : {'S': prefix+str(userNumber+offset)},
-          'recordType'       : {'S': 's-91279'},
-          'stock'            : {'N': '100000'},
-          'grossTurnover'    : {'N': '0'},
-          'grossNumber'      : {'N': '0'},
-          'itemDescription'  : {'S': '10 Eggs'},
-          'sellingPrice'     : {'N': '1.99'}})
+          'store_id'          : {'S': prefix+str(userNumber+offset)},
+          'record_type'       : {'S': 's-91279'},
+          'stock'             : {'N': '100000'},
+          'gross_turnover'    : {'N': '0'},
+          'gross_number'      : {'N': '0'},
+          'item_description'  : {'S': '10 Eggs'},
+          'selling_price'     : {'N': '1.99'}})
 
   return
 

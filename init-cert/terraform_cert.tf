@@ -11,7 +11,7 @@ variable "number_of_users"        {
 variable "offset_number_of_users" {
     description = "Is not used in this script. Declaration is done to prevent warnings."
 }
-variable "nameprefix"             {
+variable "name_prefix"             {
     description = "Is not used in this script. Declaration is done to prevent warnings."
 }
 
@@ -28,7 +28,7 @@ variable "account_number"         {
     description = "Is not used in this script. Declaration is done to prevent warnings."
 }
 
-variable keyprefix {
+variable key_prefix {
     description = "Is not used in this script. Declaration is done to prevent warnings."
 }
 

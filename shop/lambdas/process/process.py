@@ -20,24 +20,24 @@ def update_dynamodb(shop, sales):
     for sales_item in sales:
       
       # Construct recordtype by add leading zeroes if necessary
-      itemNo = int(sales_item["itemNo"])
-      recordType = "s-{:05d}".format(itemNo)
-      grossNumber = sales_item["grossNumber"]
-      grossTurnover = sales_item["grossTurnover"]
+      item_no = int(sales_item["item_no"])
+      record_type = "s-{:05d}".format(item_no)
+      gross_number = sales_item["gross_number"]
+      gross_turnover = sales_item["gross_turnover"]
     
-      print("storeId: "+shop+" - recordType: "+recordType+" - grossNumber: "+str(grossNumber)+" - grossTurnover: "+str(grossTurnover))
+      print("store_id: "+shop+" - record_type: "+record_type+" - gross_number: "+str(gross_number)+" - gross_turnover: "+str(gross_turnover))
      
       dynamodb = boto3.client('dynamodb')
       response = dynamodb.update_item (
           TableName = "AMIS-stores",
           Key = {
-            'storeID': {"S":shop},
-            'recordType' : {"S":recordType}
+            'store_id': {"S":shop},
+            'record_type' : {"S":record_type}
           },
-          UpdateExpression = "set grossNumber = grossNumber + :grossNumber, grossTurnover = grossTurnover + :grossTurnover, stock = stock - :grossNumber",
+          UpdateExpression = "set gross_number = gross_number + :gross_number, gross_turnover = gross_turnover + :gross_turnover, stock = stock - :gross_number",
           ExpressionAttributeValues = {
-              ':grossNumber'  : {"N":grossNumber},
-              ':grossTurnover': {"N":grossTurnover}
+              ':gross_number'  : {"N":gross_number},
+              ':gross_turnover': {"N":gross_turnover}
             },
           ReturnValues = "UPDATED_NEW"
         ) 

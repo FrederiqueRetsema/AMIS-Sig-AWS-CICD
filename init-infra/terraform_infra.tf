@@ -374,16 +374,16 @@ resource "aws_dynamodb_table" "AMIS-stores" {
     billing_mode   = "PROVISIONED"
     read_capacity  = 1
     write_capacity = 1
-    hash_key       = "storeID"
-    range_key      = "recordType"
+    hash_key       = "store_id"
+    range_key      = "record_type"
 
     attribute {
-        name = "storeID"
+        name = "store_id"
         type = "S"
     }
 
     attribute {
-        name = "recordType"
+        name = "record_type"
         type = "S"
     }
 }
