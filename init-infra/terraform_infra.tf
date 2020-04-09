@@ -84,8 +84,7 @@ resource "aws_kms_alias" "amis" {
 #
 
 resource "aws_iam_policy" "AMIS_CICD_policy" {
-    count = var.number_of_users
-    name  = "${var.name_prefix}${count.index + var.offset_number_of_users}_CICD_Policy"
+    name  = "${var.name_prefix}_CICD_Policy"
     description = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     policy = <<EOF
 {
@@ -135,7 +134,7 @@ resource "aws_iam_policy" "AMIS_CICD_policy" {
                   "kms:GetPublicKey"
 		],
 		"Effect": "Allow",
-		"Resource": "arn:aws:kms:eu-west-1:${var.account_number}:key/${aws_kms_key.amis[count.index].arn}"
+		"Resource": "arn:aws:kms:eu-west-1:${var.account_number}:key/${var.name_prefix}*"
       },
       {
         "Action": [
@@ -362,9 +361,8 @@ resource "aws_iam_group_membership" "SIG_CICD" {
 }
 
 resource "aws_iam_group_policy_attachment" "SIG_CICD_Policy_attachment" {
-    count      = var.number_of_users
     group      = aws_iam_group.AMIS_group.name
-    policy_arn = aws_iam_policy.AMIS_CICD_policy[count.index].arn
+    policy_arn = aws_iam_policy.AMIS_CICD_policy.arn
 }
 
 #
