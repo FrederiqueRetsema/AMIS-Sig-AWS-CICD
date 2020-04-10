@@ -4,19 +4,16 @@
 
 # It will add the access key and the secret access key from the first
 # user that is created by running the terraform scripts. (This is
-# defined in the init-shop.sh shell, we get the created-access-keys.txt
+# defined in the init-shop.sh script, we get the created-access-keys.txt
 # file from that script).
 #
 # It will assume that the first user is the default user that is to 
-# be used by the init-shop.sh install script.
+# be used by the init-shop.sh install script. If this isn't the case,
+# change ../../terraform-cicd.tfvars to the user you want to deploy to.
 #
-# The name_prefix, key_prefix, region_sig, offset_number_of_users, 
+# The name_prefix, key_prefix, aws_region, offset_number_of_users, 
 # and the domainname will be retrieved from the ../../terraform.tfvars 
 # file.
-#
-# It also assumes that amis.nl is the correct domain to use. 
-# when you use the vagrant install files, the amis.nl value will
-# be overwritten by the value you give there.
 #
 # This script is called by init-infra.sh, you shouldn't use it manually.
 
