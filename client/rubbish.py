@@ -13,9 +13,7 @@ import base64
 
 # Constants used in this script
 
-FILENAME           = "./sales.txt"
 NUMBER_OF_REQUESTS = 1
-KEY_PREFIX         = "alias/KeyH-"
 
 # get_parameters: 
 # - check if there are two parameters and stop if there are not
