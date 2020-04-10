@@ -54,7 +54,7 @@ done
 # 
 aws iam create-access-key --user-name "${name_prefix}${offset_number_of_users}" > ./created-access-keys.txt
 ./create-terraform-cicd-tfvars.sh
-rm ./created-access-keys.txt
+#rm ./created-access-keys.txt
 
 # 
 # Add records to the DynamoDB database

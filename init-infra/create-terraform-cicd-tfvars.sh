@@ -41,19 +41,21 @@ key_prefix=`grep key_prefix ../../terraform.tfvars | awk -F"\"" '{print $2}'`
 aws_region=`grep aws_region ../../terraform.tfvars | awk -F"\"" '{print $2}'`
 domainname=`grep domainname ../../terraform.tfvars | awk -F"\"" '{print $2}'`
 offset_number_of_users=`grep offset_number_of_users ../../terraform.tfvars | awk -F"=" '{print $2}'|tr -d '[:space:]'`
+aws_access_key=`grep AccessKeyId created-access-keys.txt | awk -F "\"" '{print $4}'`
+aws_secret_key=`grep SecretAccessKey created-access-keys.txt | awk -F "\"" '{print $4}'`
 
 # The output in the created-access-keys.txt is json. Therefore the seperation character is a colon.
 # We don't need double quotes ("), by using seperator \" we will get the text that we -are- interested in in $2.
 
-echo aws_access_key = \"`grep AccessKeyId created-access-keys.txt | awk -F ":" '{print $2}' | awk -F "\"" '{print $2}'`\" > ../../terraform-cicd.tfvars
-echo aws_secret_key = \"`grep SecretAccessKey created-access-keys.txt | awk -F ":" '{print $2}' | awk -F "\"" '{print $2}'`\" >> ../../terraform-cicd.tfvars
-echo aws_region     = \"${aws_region}\" >> ../../terraform-cicd.tfvars
+echo "aws_access_key = \"${aws_access_key}\"" > ../../terraform-cicd.tfvars
+echo "aws_secret_key = \"${aws_secret_key}\"" >> ../../terraform-cicd.tfvars
+echo "aws_region     = \"${aws_region}\"" >> ../../terraform-cicd.tfvars
 
 # We will take the first user that is created (that should always exist with valid parameters).
 # The first user is ${name_prefix}${offset_number_of_users}, this is by default AMIS1
-echo user_prefix    = \"${name_prefix}${offset_number_of_users}\" >> ../../terraform-cicd.tfvars
+echo "user_prefix    = \"${name_prefix}${offset_number_of_users}\"" >> ../../terraform-cicd.tfvars
 
 # These strings are the same as in the ../../terraform.tfvars file
-echo key_prefix     = \"${key_prefix}\" >> ../../terraform-cicd.tfvars
-echo domainname     = \"${domainname}\" >> ../../terraform-cicd.tfvars
+echo "key_prefix     = \"${key_prefix}\"" >> ../../terraform-cicd.tfvars
+echo "domainname     = \"${domainname}\"" >> ../../terraform-cicd.tfvars
 

@@ -37,7 +37,7 @@ aws_access_key         = "your access key"        (administrator user)
 aws_secret_key         = "your secret access key" (administrator user)
 aws_region             = "eu-west-1"              (region for the SIG: pipelines and shops are build in this region)
 number_of_users        = 2                        (max 20 per region)
-offset_number_of_users = 0                        (number to add to the first user. 0 means: first user is AMIS0)
+offset_number_of_users = 1                        (number to add to the first user. 1 means: first user is AMIS1)
 nameprefix             = "AMIS"                   (prefix for all objects: users, groups, policies, SNS topics, Lambda functions, etc)
 domainname             = "retsema.eu"             (domain name that is used for the SIG, this should be an internal domain name that 
                                                    doesn't exist on the public internet).
