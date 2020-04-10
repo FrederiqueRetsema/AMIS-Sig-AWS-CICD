@@ -10,10 +10,7 @@ variable "offset_number_of_users" {}
 variable "name_prefix"            {}
 variable "account_number"         {}
 
-variable "aws_region_sig"         {}
-variable "aws_region_ec2"         {
-    description = "Is not used in this script. Declaration is done to prevent warnings."
-}
+variable "aws_region"             {}
 
 variable "domainname" {
     default = "your-domain-name-in-AWS"
@@ -31,7 +28,7 @@ variable key_prefix {
 provider "aws" {
   access_key = var.aws_access_key
   secret_key = var.aws_secret_key
-  region     = var.aws_region_sig
+  region     = var.aws_region
 }
 
 ##################################################################################
@@ -185,7 +182,7 @@ resource "aws_iam_policy" "AMIS_CICD_lambda_accept_policy" {
 		"Resource": "*",
                 "Condition": {
                    "StringEquals": {
-                       "aws:RequestedRegion": "${var.aws_region_sig}"
+                       "aws:RequestedRegion": "${var.aws_region}"
                    }
                 }
 	}
@@ -221,7 +218,7 @@ resource "aws_iam_policy" "AMIS_CICD_lambda_decrypt_policy" {
 		"Resource": "*",
                 "Condition": {
                    "StringEquals": {
-                       "aws:RequestedRegion": "${var.aws_region_sig}"
+                       "aws:RequestedRegion": "${var.aws_region}"
                    }
                 }
 	}
@@ -256,7 +253,7 @@ resource "aws_iam_policy" "AMIS_CICD_lambda_process_policy" {
 		"Resource": "*",
                 "Condition": {
                    "StringEquals": {
-                       "aws:RequestedRegion": "${var.aws_region_sig}"
+                       "aws:RequestedRegion": "${var.aws_region}"
                    }
                 }
       }
@@ -369,16 +366,16 @@ resource "aws_iam_group_policy_attachment" "SIG_CICD_Policy_attachment" {
 ## DynamoDB
 #
 
-resource "aws_dynamodb_table" "AMIS-stores" {
-    name           = "AMIS-stores"
+resource "aws_dynamodb_table" "AMIS-shops" {
+    name           = "AMIS-shops"
     billing_mode   = "PROVISIONED"
     read_capacity  = 1
     write_capacity = 1
-    hash_key       = "store_id"
+    hash_key       = "shop_id"
     range_key      = "record_type"
 
     attribute {
-        name = "store_id"
+        name = "shop_id"
         type = "S"
     }
 
@@ -388,25 +385,8 @@ resource "aws_dynamodb_table" "AMIS-stores" {
     }
 }
 
-# Doesn't work, see my github repository. Workaround = use a python-script.
+# aws_dynamodb_table_item doesn't work, see my github repository. Workaround = use a python-script.
 #
-#resource "aws_dynamodb_table_item" "AMIS-goudse-kaas-items" {
-#    table_name     = aws_dynamodb_table.AMIS-stores.name
-#    hash_key       = aws_dynamodb_table.AMIS-stores.hash_key
-#    count          = var.number_of_users
-#
-#    item = <<ITEM
-#{
-#    "storeID"         : {"S": "${var.name_prefix}${count.index + var.offset_number_of_users}"},
-#    "recordType"      : {"S": "store"},
-#    "itemID"          : {"N": "1234"},
-#    "itemDescription" : {"S": "something"},
-#    "stock"           : {"N": "10000"},
-#    "sellingPrice"    : {"N": "3"},
-#    "grossAmount"     : {"N": "0"}
-#}
-#ITEM
-#}
 
 ##################################################################################
 # OUTPUT

@@ -7,7 +7,7 @@ variable "aws_secret_key" {}
 variable "domainname"     {}
 variable "user_prefix"    {}
 variable "key_prefix"     {}
-variable "region_sig"     {}
+variable "aws_region"     {}
 
 ##################################################################################
 # PROVIDERS
@@ -16,7 +16,7 @@ variable "region_sig"     {}
 provider "aws" {
   access_key = var.aws_access_key
   secret_key = var.aws_secret_key
-  region     = var.region_sig
+  region     = var.aws_region
 }
 
 ##################################################################################

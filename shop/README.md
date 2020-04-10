@@ -14,17 +14,21 @@ Copy terraforms-template.tfvars to \terraform.tfvars and change the content: add
 secret access key of an administrative user to this file, change other parameters if you want to and run 
 the init-infra.sh script.
 
-## List of parameters in ../../terraform.tfvars
+## List of parameters in ../../terraform.tfvars with their defaults
+Please note that when you use vagrant, many defaults will change when you pass other values to the questions
+in that script.
 
+```
 aws_access_key         = "your access key (administrator user)"
 aws_secret_key         = "your secret access key (administrator user)"
 number_of_users        = 2                 (max 20 per region)
 offset_number_of_users = 0                 (number to add to the first user. 0 means: first user is AMIS0)
-aws_region_sig         = "eu-west-1"       (region for the SIG: pipelines and shops are build in this region)
-aws_region_ec2         = "eu-west-2"       (region for the virtual machines)
+aws_region             = "eu-west-1"       (region for the SIG: pipelines and shops are build in this region)
 nameprefix             = "AMIS"            (prefix for all objects: users, groups, policies, SNS topics, Lambda functions, etc)
 domainname             = "retsema.eu"      (domain name that is used for the SIG, this should be an internal \
                                             domain name that doesn't exist on the public internet).
+```
+
 ## Changes for AWS CLI
 The AWS CLI is used in the scripts. Please install the AWS CLI (yum install aws-cli -y) and use `aws configure ` to add AWS access key, secret access key, default region (which should be the SIG region) to your machine.
 

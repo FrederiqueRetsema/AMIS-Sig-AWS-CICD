@@ -5,16 +5,16 @@ import base64
 
 from botocore.exceptions import ClientError
 
-def get_shop_and_decrypted_content(event):
+def get_shop_id_and_decrypted_content(event):
   message = json.loads(event["Records"][0]["Sns"]["Message"])
   print(message)
 
-  shop = message["shop"]
+  shop_id = message["shop_id"]
   decrypted_content = json.loads(message["decrypted_content"])
 
-  return {"shop": shop, "decrypted_content": decrypted_content}
+  return {"shop_id": shop_id, "decrypted_content": decrypted_content}
 
-def update_dynamodb(shop, sales):
+def update_dynamodb(shop_id, sales):
   try:
     
     for sales_item in sales:
@@ -25,13 +25,13 @@ def update_dynamodb(shop, sales):
       gross_number = sales_item["gross_number"]
       gross_turnover = sales_item["gross_turnover"]
     
-      print("store_id: "+shop+" - record_type: "+record_type+" - gross_number: "+str(gross_number)+" - gross_turnover: "+str(gross_turnover))
+      print("shop_id: " + shop_id + " - record_type: " + record_type + " - gross_number: " + str(gross_number) + " - gross_turnover: " + str(gross_turnover))
      
       dynamodb = boto3.client('dynamodb')
       response = dynamodb.update_item (
-          TableName = "AMIS-stores",
+          TableName = "AMIS-shops",
           Key = {
-            'store_id': {"S":shop},
+            'shop_id': {"S":shop_id},
             'record_type' : {"S":record_type}
           },
           UpdateExpression = "set gross_number = gross_number + :gross_number, gross_turnover = gross_turnover + :gross_turnover, stock = stock - :gross_number",
@@ -41,12 +41,13 @@ def update_dynamodb(shop, sales):
             },
           ReturnValues = "UPDATED_NEW"
         ) 
+    print("Response: " + json.dumps(response))
     
     succeeded = True
     
   except ClientError as e:
     succeeded = False
-    print("ERROR:" + shop + " - " + str(e))
+    print("ERROR:" + shop_id + " - " + str(e))
 
   return {"succeeded": succeeded}
 
@@ -55,18 +56,20 @@ def lambda_handler(event, context):
 
   decrypted_content = ""
 
-  response          = get_shop_and_decrypted_content(event)
-  shop              = response["shop"]
+  response          = get_shop_id_and_decrypted_content(event)
+  shop_id           = response["shop_id"]
   decrypted_content = json.loads(response["decrypted_content"])
 
   print("decrypted_content:")
   print(decrypted_content)
 
   # Update the DynamoDB table
-  response  = update_dynamodb(shop, decrypted_content["sales"])
+  response  = update_dynamodb(shop_id, decrypted_content["sales"])
   succeeded = response["succeeded"]
 
-  print("DONE: event: "+str(event)+", shop: "+shop+", succeeded: "+str(response["succeeded"])+", context.get_remaining_time_in_millis(): "+str(context.get_remaining_time_in_millis())+", context.memory_limit_in_mb: "+str(context.memory_limit_in_mb))
-
-
+  print("DONE: event: " + json.dumps(event) + \
+            ", shop_id: " + shop_id + \
+            ", succeeded: " + json.dumps(response["succeeded"]) + \
+            ", context.get_remaining_time_in_millis(): " + str(context.get_remaining_time_in_millis()) + \
+            ", context.memory_limit_in_mb: " + str(context.memory_limit_in_mb))
 

@@ -36,21 +36,21 @@ def add_records(prefix, offset, number_of_users):
   for userNumber in range(number_of_users):
     dynamodb = boto3.client("dynamodb")
     dynamodb.put_item(
-      TableName='AMIS-stores',
+      TableName='AMIS-shops',
       Item={
-          'store_id'          : {'S': prefix+str(userNumber+offset)},
+          'shop_id'           : {'S': prefix+str(userNumber+offset)},
           'record_type'       : {'S': 's-00098'},
           'stock'             : {'N': '100000'},
           'gross_turnover'    : {'N': '0'},
           'gross_number'      : {'N': '0'},
-          'item_description'  : {'S': '250g Butter'},
+          'item_description'  : {'S': '250 g Butter'},
           'selling_price'     : {'N': '2.45'}})
 
     
     dynamodb.put_item(
-      TableName='AMIS-stores',
+      TableName='AMIS-shops',
       Item={
-          'store_id'          : {'S': prefix+str(userNumber+offset)},
+          'shop_id'           : {'S': prefix+str(userNumber+offset)},
           'record_type'       : {'S': 's-12345'},
           'stock'             : {'N': '100000'},
           'gross_turnover'    : {'N': '0'},
@@ -59,9 +59,9 @@ def add_records(prefix, offset, number_of_users):
           'selling_price'     : {'N': '12.15'}})
     
     dynamodb.put_item(
-      TableName='AMIS-stores',
+      TableName='AMIS-shops',
       Item={
-          'store_id'          : {'S': prefix+str(userNumber+offset)},
+          'shop_id'           : {'S': prefix+str(userNumber+offset)},
           'record_type'       : {'S': 's-91279'},
           'stock'             : {'N': '100000'},
           'gross_turnover'    : {'N': '0'},

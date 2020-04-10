@@ -1,4 +1,10 @@
 #!/usr/bin/python3
+#
+# 100x.py
+# -------
+# Encrypts the contents of sales.txt in this directory, use a key that contains the id of the shop from the
+# command line and send it 100x to the URL that is also specified on the command line
+#
 
 import sys
 import boto3
@@ -19,14 +25,14 @@ KEY_PREFIX         = "alias/KeyH-"
 def get_parameters():
 
   if (len(sys.argv) != 3):
-      print ("Add two arguments, f.e. ./encrypt.py AMIS1 https://amis1.retsema.eu/shop")
+      print ("Add two arguments, f.e. ./encrypt_and_send.py AMIS1 https://amis1.retsema.eu/shop")
       sys.exit(1)
 
-  shop      = sys.argv[1]
-  key_alias = KEY_PREFIX + shop
+  shop_id   = sys.argv[1]
+  key_alias = KEY_PREFIX + shop_id
   url       = sys.argv[2]
 
-  return {"shop": shop, "key_alias": key_alias, "url": url}
+  return {"shop_id": shop_id, "key_alias": key_alias, "url": url}
 
 # encrypt_sales:
 # - get sales information from the file
@@ -55,11 +61,11 @@ def encrypt_sales(key_alias):
 
 # create_data:
 # - create json with data that has to be send
-# - the simplest data string contains just shop and content_base64. It is allowed to send extra data (which will be ignored)
+# - the simplest data string contains just shop id and content_base64. It is allowed to send extra data (which will be ignored)
 
-def create_data(shop, content_base64):
+def create_data(shop_id, content_base64):
 
-  data = {"shop": shop, "content_base64": content_base64}
+  data = {"shop_id": shop_id, "content_base64": content_base64}
 
   return {"data": data}
 
@@ -81,21 +87,21 @@ def send_data(url, data):
 # - send the data
 
 response = get_parameters()
-shop      = response["shop"]
+shop_id  = response["shop_id"]
 key_alias = response["key_alias"]
 url       = response["url"]
 
-print ("Shop           = ", shop)
-print ("Key alias      = ", key_alias)
-print ("URL            = ", url)
+print ("Shop id        = " + shop_id)
+print ("Key alias      = " + key_alias)
+print ("URL            = " + url)
 
 response       = encrypt_sales(key_alias)
 content_base64 = response["content_base64"]
 
-response       = create_data(shop,content_base64)
+response       = create_data(shop_id,content_base64)
 data           = response["data"]
 
-print ("Data           = ", data)
+print ("Data           = "+json.dumps(data))
 
 response       = send_data(url, data)
 reply          = response["reply"]

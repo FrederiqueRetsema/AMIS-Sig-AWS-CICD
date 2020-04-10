@@ -1,9 +1,8 @@
 aws_access_key         = "your_access_key"
 aws_secret_key         = "your_secret_key"
+aws_region             = "eu-west-1"
 number_of_users        = 2
 offset_number_of_users = 1
-aws_region_sig         = "eu-west-1"
-aws_region_ec2         = "eu-west-2"
 name_prefix            = "AMIS"
 key_prefix             = "KeyH-"
 domainname             = "retsema.eu"

@@ -30,18 +30,18 @@ This will, however, not be part of the automated scripts in this directory, to p
 service limit.
 
 ## List of parameters in ../../terraform.tfvars
+Please mind, that if you use the init-all.sh script, then many of these defaults are changed automatically.
 
 ``` terraform.tfvars
 aws_access_key         = "your access key"        (administrator user)
 aws_secret_key         = "your secret access key" (administrator user)
+aws_region             = "eu-west-1"              (region for the SIG: pipelines and shops are build in this region)
 number_of_users        = 2                        (max 20 per region)
 offset_number_of_users = 0                        (number to add to the first user. 0 means: first user is AMIS0)
-aws_region_sig         = "eu-west-1"              (region for the SIG: pipelines and shops are build in this region)
-aws_region_ec2         = "eu-west-2"              (region for the virtual machines)
 nameprefix             = "AMIS"                   (prefix for all objects: users, groups, policies, SNS topics, Lambda functions, etc)
 domainname             = "retsema.eu"             (domain name that is used for the SIG, this should be an internal domain name that 
                                                    doesn't exist on the public internet).
-keyprefix              = "KeyG-"                  (when something goes wrong with destroying the environment, then the keys are 
+key_prefix             = "KeyH-"                  (when something goes wrong with destroying the environment, then the keys are 
                                                    destroyed but the aliases are not disconnected. When you try to create a new key 
                                                    with the same label (f.e. KeyG-AMIS1) then this will fail, even when the key is 
                                                    marked for deletion. Please change this name on four places: 
