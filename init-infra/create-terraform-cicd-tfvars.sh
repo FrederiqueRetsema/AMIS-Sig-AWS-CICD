@@ -31,18 +31,26 @@
 #              previous example, $2 will be 
 #                  AMIS. 
 #
+# Format created-access-keys.txt is "name": "value", so when the delimiter 
+#         is =, we need $4, not $2
+#
 # Numbers, like offset_number_of_users: likewise, but here the seperator 
 #         is the = character (numerical values don't have a double quote), 
 #         and the tr command is needed to trim off spaces because otherwise
 #         the user_prefix will contain spaces (f.e. AMIS 1 instead of AMIS1)
 #         
-name_prefix=`grep name_prefix ../../terraform.tfvars | awk -F"\"" '{print $2}'`
-key_prefix=`grep key_prefix ../../terraform.tfvars | awk -F"\"" '{print $2}'`
-aws_region=`grep aws_region ../../terraform.tfvars | awk -F"\"" '{print $2}'`
-domainname=`grep domainname ../../terraform.tfvars | awk -F"\"" '{print $2}'`
-offset_number_of_users=`grep offset_number_of_users ../../terraform.tfvars | awk -F"=" '{print $2}'|tr -d '[:space:]'`
+
 aws_access_key=`grep AccessKeyId created-access-keys.txt | awk -F "\"" '{print $4}'`
 aws_secret_key=`grep SecretAccessKey created-access-keys.txt | awk -F "\"" '{print $4}'`
+
+aws_region=`grep aws_region ../../terraform.tfvars | awk -F"\"" '{print $2}'`
+
+domainname=`grep domainname ../../terraform.tfvars | awk -F"\"" '{print $2}'`
+
+name_prefix=`grep name_prefix ../../terraform.tfvars | awk -F"\"" '{print $2}'`
+key_prefix=`grep key_prefix ../../terraform.tfvars | awk -F"\"" '{print $2}'`
+
+offset_number_of_users=`grep offset_number_of_users ../../terraform.tfvars | awk -F"=" '{print $2}'|tr -d '[:space:]'`
 
 # The output in the created-access-keys.txt is json. Therefore the seperation character is a colon.
 # We don't need double quotes ("), by using seperator \" we will get the text that we -are- interested in in $2.
@@ -50,12 +58,13 @@ aws_secret_key=`grep SecretAccessKey created-access-keys.txt | awk -F "\"" '{pri
 echo "aws_access_key = \"${aws_access_key}\"" > ../../terraform-cicd.tfvars
 echo "aws_secret_key = \"${aws_secret_key}\"" >> ../../terraform-cicd.tfvars
 echo "aws_region     = \"${aws_region}\"" >> ../../terraform-cicd.tfvars
-
-# We will take the first user that is created (that should always exist with valid parameters).
-# The first user is ${name_prefix}${offset_number_of_users}, this is by default AMIS1
-echo "user_prefix    = \"${name_prefix}${offset_number_of_users}\"" >> ../../terraform-cicd.tfvars
-
-# These strings are the same as in the ../../terraform.tfvars file
-echo "key_prefix     = \"${key_prefix}\"" >> ../../terraform-cicd.tfvars
+echo "" >> ../../terraform-cicd.tfvars
 echo "domainname     = \"${domainname}\"" >> ../../terraform-cicd.tfvars
+echo "" >> ../../terraform-cicd.tfvars
+
+# Take the first user that is created (that should always exist with valid parameters).
+# The first user is ${name_prefix}${offset_number_of_users}, this is AMIS1 when all defaults are used
+
+echo "user_prefix    = \"${name_prefix}${offset_number_of_users}\"" >> ../../terraform-cicd.tfvars
+echo "key_prefix     = \"${key_prefix}\"" >> ../../terraform-cicd.tfvars
 

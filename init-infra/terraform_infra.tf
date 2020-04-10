@@ -4,22 +4,16 @@
 
 variable "aws_access_key"         {}
 variable "aws_secret_key"         {}
+variable "aws_region"             {}
+
+variable "account_number"         {}
+variable "domainname"             {}
+
+variable "name_prefix"            {}
+variable "key_prefix"             {}
 
 variable "number_of_users"        {}
 variable "offset_number_of_users" {}
-variable "name_prefix"            {}
-variable "account_number"         {}
-
-variable "aws_region"             {}
-
-variable "domainname" {
-    default = "your-domain-name-in-AWS"
-}
-
-variable key_prefix {
-   description = "Prefix for key. Change this if you get a 'key already exists' message on creation"
-   default = "KeyG-"
-}
 
 ##################################################################################
 # PROVIDERS

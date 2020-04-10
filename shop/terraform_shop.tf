@@ -4,10 +4,12 @@
 
 variable "aws_access_key" {}
 variable "aws_secret_key" {}
+variable "aws_region"     {}
+
 variable "domainname"     {}
+
 variable "user_prefix"    {}
 variable "key_prefix"     {}
-variable "aws_region"     {}
 
 ##################################################################################
 # PROVIDERS
