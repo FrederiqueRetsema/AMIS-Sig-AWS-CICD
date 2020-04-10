@@ -8,6 +8,7 @@ variable "aws_region"     {}
 
 variable "domainname"     {}
 
+variable "name_prefix"    {}
 variable "user_prefix"    {}
 variable "key_prefix"     {}
 
@@ -26,15 +27,15 @@ provider "aws" {
 ##################################################################################
 
 data "aws_iam_role" "lambda_accept_role" {
-    name = "AMIS_CICD_lambda_accept_role"
+    name = "${var.name_prefix}_CICD_lambda_accept_role"
 }
 
 data "aws_iam_role" "lambda_decrypt_role" {
-    name = "AMIS_CICD_lambda_decrypt_role"
+    name = "${var.name_prefix}_CICD_lambda_decrypt_role"
 }
 
 data "aws_iam_role" "lambda_process_role" {
-    name = "AMIS_CICD_lambda_process_role"
+    name = "${var.name_prefix}_CICD_lambda_process_role"
 }
 
 data "aws_acm_certificate" "domain_certificate" {
@@ -181,6 +182,7 @@ resource "aws_api_gateway_integration" "integration" {
 #                           SNS topic to the Lambda code.
 # 
 resource "aws_lambda_permission" "lambda_accept_permission" {
+  depends_on    = [aws_lambda_function.accept, aws_api_gateway_integration.integration]
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.accept.function_name
@@ -188,6 +190,7 @@ resource "aws_lambda_permission" "lambda_accept_permission" {
 }
 
 resource "aws_lambda_function" "accept" {
+    depends_on    = [aws_api_gateway_resource.API_Gateway_resource_shop]
     function_name = "${var.user_prefix}_accept"
     filename      = "./lambdas/accept/accept.zip"
     role          = data.aws_iam_role.lambda_accept_role.arn
@@ -213,9 +216,9 @@ resource "aws_sns_topic" "to_decrypt" {
 }
 
 resource "aws_sns_topic_subscription" "decrypt_to_lambda" {
-  topic_arn = aws_sns_topic.to_decrypt.arn
-  protocol  = "lambda"
-  endpoint  = aws_lambda_function.decrypt.arn
+  topic_arn  = aws_sns_topic.to_decrypt.arn
+  protocol   = "lambda"
+  endpoint   = aws_lambda_function.decrypt.arn
 }
 
 # Lambda decrypt
@@ -231,7 +234,8 @@ resource "aws_sns_topic_subscription" "decrypt_to_lambda" {
 #                           SNS topic and the key prefix to the Lambda code.
 
 resource "aws_lambda_permission" "lambda_decrypt_permission" {
-  statement_id  = "AllowExecutionFromSNS"
+  depends_on    = [aws_lambda_function.decrypt,aws_sns_topic.to_decrypt]
+  statement_id  = "AllowExecutionFromSNSToDecrypt"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.decrypt.function_name
   principal     = "sns.amazonaws.com"
@@ -281,7 +285,8 @@ resource "aws_sns_topic_subscription" "process_to_lambda" {
 #                           is mandatory in Terraform.
 
 resource "aws_lambda_permission" "lambda_process_permission" {
-  statement_id  = "AllowExecutionFromSNS"
+  depends_on    = [aws_lambda_function.process, aws_sns_topic.to_process]
+  statement_id  = "AllowExecutionFromSNSToProcess"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.process.function_name
   principal     = "sns.amazonaws.com"

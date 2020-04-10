@@ -62,6 +62,7 @@ echo "" >> ../../terraform-cicd.tfvars
 # Take the first user that is created (that should always exist with valid parameters).
 # The first user is ${name_prefix}${offset_number_of_users}, this is AMIS1 when all defaults are used
 
+echo "name_prefix    = \"${name_prefix}\"" >> ../../terraform-cicd.tfvars
 echo "user_prefix    = \"${name_prefix}${offset_number_of_users}\"" >> ../../terraform-cicd.tfvars
 echo "key_prefix     = \"${key_prefix}\"" >> ../../terraform-cicd.tfvars
 
