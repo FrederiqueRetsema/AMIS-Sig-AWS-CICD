@@ -6,6 +6,24 @@
 # errors in AWS: you are allowed to request 20 certificates per year. 
 
 ../../terraform init --var-file=../../terraform.tfvars
+if (test $? -ne 0)
+then
+    print "Init of certificate failed"
+    exit 1
+fi
+
 ../../terraform plan --var-file=../../terraform.tfvars --out terraform.tfplans
+if (test $? -ne 0)
+then
+    print "Plan of certificate failed"
+    exit 1
+fi
+
 ../../terraform apply "terraform.tfplans"
+if (test $? -ne 0)
+then
+    print "Apply of certificate failed"
+    exit 1
+fi
+
 

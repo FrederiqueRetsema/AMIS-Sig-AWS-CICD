@@ -8,4 +8,9 @@
 # errors in AWS: you are allowed to request 20 certificates per year. 
 
 ../../terraform destroy --var-file=../../terraform.tfvars 
+if (test $? -ne 0)
+then
+    print "Destroy of certificate failed"
+    exit 1
+fi
 

@@ -24,5 +24,22 @@ cd ../..
 # Use terraform to deploy the shop. 
 # 
 ../../terraform init --var-file=../../terraform-cicd.tfvars
+if (test $? -ne 0)
+then
+  echo Init failed
+  exit 1
+fi
+
 ../../terraform plan --var-file=../../terraform-cicd.tfvars --out terraform.tfplans
+if (test $? -ne 0)
+then
+  echo Plan failed
+  exit 1
+fi
+
 ../../terraform apply "terraform.tfplans"
+if (test $? -ne 0)
+then
+  echo Apply failed
+  exit 1
+fi

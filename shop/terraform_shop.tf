@@ -117,8 +117,9 @@ resource "aws_route53_record" "my_shop_dns_record" {
 #
 
 resource "aws_api_gateway_base_path_mapping" "map_shop_prod_to_api_gateway_domain" {
-  api_id = aws_api_gateway_rest_api.API_Gateway.id
-  stage_name = aws_api_gateway_deployment.deployment_prod.stage_name
+  depends_on  = [aws_api_gateway_rest_api.API_Gateway, aws_api_gateway_deployment.deployment_prod, aws_api_gateway_domain_name.API_Gateway_domain_name]
+  api_id      = aws_api_gateway_rest_api.API_Gateway.id
+  stage_name  = aws_api_gateway_deployment.deployment_prod.stage_name
   domain_name = aws_api_gateway_domain_name.API_Gateway_domain_name.domain_name
 }
 
@@ -132,7 +133,7 @@ resource "aws_api_gateway_domain_name" "API_Gateway_domain_name" {
 }
 
 resource "aws_api_gateway_deployment" "deployment_prod" {
-  depends_on  = [aws_api_gateway_integration.integration]
+  depends_on  = [aws_api_gateway_integration.integration, aws_api_gateway_rest_api.API_Gateway, aws_api_gateway_resource.API_Gateway_resource_shop, aws_api_gateway_method.API_Gateway_method]
   rest_api_id = aws_api_gateway_rest_api.API_Gateway.id
   stage_name  = "prod"
 }
@@ -146,12 +147,14 @@ resource "aws_api_gateway_rest_api" "API_Gateway" {
 }
 
 resource "aws_api_gateway_resource" "API_Gateway_resource_shop" {
+  depends_on  = [aws_api_gateway_rest_api.API_Gateway]
   rest_api_id = aws_api_gateway_rest_api.API_Gateway.id
   parent_id   = aws_api_gateway_rest_api.API_Gateway.root_resource_id
   path_part   = "shop"
 }
 
 resource "aws_api_gateway_method" "API_Gateway_method" {
+  depends_on     = [aws_api_gateway_rest_api.API_Gateway, aws_api_gateway_resource.API_Gateway_resource_shop, aws_lambda_function.accept]
   rest_api_id    = aws_api_gateway_rest_api.API_Gateway.id
   resource_id    = aws_api_gateway_resource.API_Gateway_resource_shop.id
   http_method    = "POST"
@@ -160,6 +163,7 @@ resource "aws_api_gateway_method" "API_Gateway_method" {
 }
 
 resource "aws_api_gateway_integration" "integration" {
+  depends_on              = [aws_api_gateway_rest_api.API_Gateway, aws_api_gateway_resource.API_Gateway_resource_shop, aws_api_gateway_method.API_Gateway_method, aws_lambda_function.accept]
   rest_api_id             = aws_api_gateway_rest_api.API_Gateway.id
   resource_id             = aws_api_gateway_resource.API_Gateway_resource_shop.id
   http_method             = aws_api_gateway_method.API_Gateway_method.http_method

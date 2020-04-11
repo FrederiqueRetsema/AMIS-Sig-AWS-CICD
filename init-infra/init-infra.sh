@@ -37,8 +37,26 @@ echo "last_number_of_users   = ${last_number_of_users}"
 # Use terraform to deploy the infrastructure
 
 ../../terraform init --var-file=../../terraform.tfvars
+if (test $? -ne 0)
+then
+  echo Init failed
+  exit 1
+fi
+
 ../../terraform plan --var-file=../../terraform.tfvars --out terraform.tfplans
+if (test $? -ne 0)
+then
+  echo Plan failed
+  exit 1
+fi
+
 ../../terraform apply "terraform.tfplans"
+if (test $? -ne 0)
+then
+  echo Apply failed
+  exit 1
+fi
+
 
 # Add passwords to the users. DomToren${i}# (f.e. DomToren1#) is an example only, we will use different 
 # passwords during the workshop.
@@ -46,6 +64,12 @@ echo "last_number_of_users   = ${last_number_of_users}"
 for i in $(seq ${offset_number_of_users} ${last_number_of_users})
 do
   aws iam create-login-profile --user-name "${name_prefix}$i" --password "DomToren${i}#" --no-password-reset-required
+  if (test $? -ne 0)
+  then
+    echo "AWS CLI failed (IAM create-logon-profile)"
+    exit 1
+  fi
+
 done
 
 # - Create a file with new access keys for the first user, 
@@ -53,6 +77,12 @@ done
 # - Don't leave access information in a file which might be checked in into github (if we miss it), destroy the file
 # 
 aws iam create-access-key --user-name "${name_prefix}${offset_number_of_users}" > ./created-access-keys.txt
+if (test $? -ne 0)
+then
+  echo "AWS CLI failed (IAM create-access-key)"
+  exit 1
+fi
+
 ./create-terraform-cicd-tfvars.sh
 rm ./created-access-keys.txt
 
