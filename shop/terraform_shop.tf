@@ -76,14 +76,14 @@ resource "aws_acm_certificate_validation" "mycertificate_validation" {
 # DNS-entry for <user_prefix>.<your domainname>, will point to the gateway domain
 #
 
-resource "aws_route53_record" "my_shop_dns_record" {
+resource "aws_route53_record" "myshop_dns_record" {
     zone_id = data.aws_route53_zone.my_zone.zone_id
     name    = lower(var.user_prefix)
     type    = "A"
 
     alias {
-        name                   = aws_api_gateway_domain_name.API_Gateway_domain_name.regional_domain_name
-        zone_id                = aws_api_gateway_domain_name.API_Gateway_domain_name.regional_zone_id
+        name                   = aws_api_gateway_domain_name.api_gateway_domain_name.regional_domain_name
+        zone_id                = aws_api_gateway_domain_name.api_gateway_domain_name.regional_zone_id
         evaluate_target_health = true
     }
 }
@@ -117,13 +117,13 @@ resource "aws_route53_record" "my_shop_dns_record" {
 #
 
 resource "aws_api_gateway_base_path_mapping" "map_shop_prod_to_api_gateway_domain" {
-  depends_on  = [aws_api_gateway_rest_api.API_Gateway, aws_api_gateway_deployment.deployment_prod, aws_api_gateway_domain_name.API_Gateway_domain_name]
-  api_id      = aws_api_gateway_rest_api.API_Gateway.id
+  depends_on  = [aws_api_gateway_rest_api.api_gateway, aws_api_gateway_deployment.deployment_prod, aws_api_gateway_domain_name.api_gateway_domain_name]
+  api_id      = aws_api_gateway_rest_api.api_gateway.id
   stage_name  = aws_api_gateway_deployment.deployment_prod.stage_name
-  domain_name = aws_api_gateway_domain_name.API_Gateway_domain_name.domain_name
+  domain_name = aws_api_gateway_domain_name.api_gateway_domain_name.domain_name
 }
 
-resource "aws_api_gateway_domain_name" "API_Gateway_domain_name" {
+resource "aws_api_gateway_domain_name" "api_gateway_domain_name" {
   domain_name              = "${lower(var.user_prefix)}.${var.domainname}"
   regional_certificate_arn = aws_acm_certificate_validation.mycertificate_validation.certificate_arn
   security_policy          = "TLS_1_2"
@@ -133,46 +133,45 @@ resource "aws_api_gateway_domain_name" "API_Gateway_domain_name" {
 }
 
 resource "aws_api_gateway_deployment" "deployment_prod" {
-  depends_on  = [aws_api_gateway_integration.integration, aws_api_gateway_rest_api.API_Gateway, aws_api_gateway_resource.API_Gateway_resource_shop, aws_api_gateway_method.API_Gateway_method]
-  rest_api_id = aws_api_gateway_rest_api.API_Gateway.id
+  depends_on  = [aws_api_gateway_integration.integration, aws_api_gateway_rest_api.api_gateway, aws_api_gateway_resource.api_gateway_resource_shop, aws_api_gateway_method.api_gateway_method_prod]
+  rest_api_id = aws_api_gateway_rest_api.api_gateway.id
   stage_name  = "prod"
 }
 
-resource "aws_api_gateway_rest_api" "API_Gateway" {
-  name        = "${var.user_prefix}_API_Gateway"
+resource "aws_api_gateway_rest_api" "api_gateway" {
+  name        = "${var.user_prefix}_api_gateway"
   description = "Part of workshop on 01-07-2020"
   endpoint_configuration {
     types = ["REGIONAL"]
   }
 }
 
-resource "aws_api_gateway_resource" "API_Gateway_resource_shop" {
-  depends_on  = [aws_api_gateway_rest_api.API_Gateway]
-  rest_api_id = aws_api_gateway_rest_api.API_Gateway.id
-  parent_id   = aws_api_gateway_rest_api.API_Gateway.root_resource_id
+resource "aws_api_gateway_resource" "api_gateway_resource_shop" {
+  depends_on  = [aws_api_gateway_rest_api.api_gateway]
+  rest_api_id = aws_api_gateway_rest_api.api_gateway.id
+  parent_id   = aws_api_gateway_rest_api.api_gateway.root_resource_id
   path_part   = "shop"
 }
 
-resource "aws_api_gateway_method" "API_Gateway_method" {
-  depends_on     = [aws_api_gateway_rest_api.API_Gateway, aws_api_gateway_resource.API_Gateway_resource_shop, aws_lambda_function.accept]
-  rest_api_id    = aws_api_gateway_rest_api.API_Gateway.id
-  resource_id    = aws_api_gateway_resource.API_Gateway_resource_shop.id
+resource "aws_api_gateway_method" "api_gateway_method_post" {
+  depends_on     = [aws_api_gateway_rest_api.api_gateway, aws_api_gateway_resource.api_gateway_resource_shop, aws_lambda_function.accept]
+  rest_api_id    = aws_api_gateway_rest_api.api_gateway.id
+  resource_id    = aws_api_gateway_resource.api_gateway_resource_shop.id
   http_method    = "POST"
   authorization  = "NONE"
   request_models = {"application/json"="Empty"}
 }
 
 resource "aws_api_gateway_integration" "integration" {
-  depends_on              = [aws_api_gateway_rest_api.API_Gateway, aws_api_gateway_resource.API_Gateway_resource_shop, aws_api_gateway_method.API_Gateway_method, aws_lambda_function.accept]
-  rest_api_id             = aws_api_gateway_rest_api.API_Gateway.id
-  resource_id             = aws_api_gateway_resource.API_Gateway_resource_shop.id
-  http_method             = aws_api_gateway_method.API_Gateway_method.http_method
+  depends_on              = [aws_api_gateway_rest_api.api_gateway, aws_api_gateway_resource.api_gateway_resource_shop, aws_api_gateway_method.api_gateway_method_post, aws_lambda_function.accept]
+  rest_api_id             = aws_api_gateway_rest_api.api_gateway.id
+  resource_id             = aws_api_gateway_resource.api_gateway_resource_shop.id
+  http_method             = aws_api_gateway_method.api_gateway_method_post.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.accept.invoke_arn
 }
 
-#
 # Lambda accept
 #
 # These objects are defined in the order in which they are used from the call 
@@ -194,7 +193,7 @@ resource "aws_lambda_permission" "lambda_accept_permission" {
 }
 
 resource "aws_lambda_function" "accept" {
-    depends_on    = [aws_api_gateway_resource.API_Gateway_resource_shop]
+    depends_on    = [aws_api_gateway_resource.api_gateway_resource_shop]
     function_name = "${var.user_prefix}_accept"
     filename      = "./lambdas/accept/accept.zip"
     role          = data.aws_iam_role.lambda_accept_role.arn
@@ -219,7 +218,7 @@ resource "aws_sns_topic" "to_decrypt" {
   name = "${var.user_prefix}_to_decrypt"
 }
 
-resource "aws_sns_topic_subscription" "decrypt_to_lambda" {
+resource "aws_sns_topic_subscription" "to_decrypt_subscription" {
   topic_arn  = aws_sns_topic.to_decrypt.arn
   protocol   = "lambda"
   endpoint   = aws_lambda_function.decrypt.arn
@@ -238,7 +237,7 @@ resource "aws_sns_topic_subscription" "decrypt_to_lambda" {
 #                           SNS topic and the key prefix to the Lambda code.
 
 resource "aws_lambda_permission" "lambda_decrypt_permission" {
-  depends_on    = [aws_lambda_function.decrypt,aws_sns_topic_subscription.decrypt_to_lambda]
+  depends_on    = [aws_lambda_function.decrypt,aws_sns_topic_subscription.to_decrypt_subscription]
   statement_id  = "AllowExecutionFromSNSToDecrypt"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.decrypt.function_name
@@ -272,7 +271,7 @@ resource "aws_sns_topic" "to_process" {
   name = "${var.user_prefix}_to_process"
 }
 
-resource "aws_sns_topic_subscription" "process_to_lambda" {
+resource "aws_sns_topic_subscription" "to_process_subscription" {
   topic_arn = aws_sns_topic.to_process.arn
   protocol  = "lambda"
   endpoint  = aws_lambda_function.process.arn
@@ -291,7 +290,7 @@ resource "aws_sns_topic_subscription" "process_to_lambda" {
 #                           table name to the Lambda code.
 
 resource "aws_lambda_permission" "lambda_process_permission" {
-  depends_on    = [aws_lambda_function.process, aws_sns_topic_subscription.process_to_lambda]
+  depends_on    = [aws_lambda_function.process, aws_sns_topic_subscription.to_process_subscription]
   statement_id  = "AllowExecutionFromSNSToProcess"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.process.function_name
@@ -320,6 +319,6 @@ resource "aws_lambda_function" "process" {
 ##################################################################################
 
 output "invoke_url" {
-  value = "${aws_api_gateway_deployment.deployment_prod.invoke_url}/${aws_api_gateway_resource.API_Gateway_resource_shop.path_part}"
+  value = "${aws_api_gateway_deployment.deployment_prod.invoke_url}/${aws_api_gateway_resource.api_gateway_resource_shop.path_part}"
 }
 
