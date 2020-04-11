@@ -39,43 +39,32 @@ data "aws_route53_zone" "zone" {
 
 ##################################################################################
 # RESOURCES
+# 
+# Resources are created in the following order:
+# - IAM objects
+# - KMS objects
+# - DynamoDB objects
 ##################################################################################
 
+# IAM Objects
+# -----------
 #
-# Create as many keys as users
-#
-
-# Key itself
-
-resource "aws_kms_key" "amis" {
-    count                    = var.number_of_users
-    description              = "${var.name_prefix}${count.index + var.offset_number_of_users}"
-    key_usage                = "ENCRYPT_DECRYPT"
-    customer_master_key_spec = "RSA_2048"
-}
-
-# Alias ("name") for the key
-
-resource "aws_kms_alias" "amis" {
-  count          = var.number_of_users
-  name           = "alias/${var.key_prefix}${var.name_prefix}${count.index + var.offset_number_of_users}"
-  target_key_id  = aws_kms_key.amis[count.index].key_id 
-}
-
-#
-# IAM policies
-#
+# IAM objects are created in the following order:
+# - policies
+# - roles
+# - users
+# - groups
 
 # Policy for the users (both UI and CLI/SDK)
 #
 # The AWS services that we use in the shop example (API Gateway, Lambda, SNS, DynamoDB) can be used 
-# without restrictions in the region that we use.
+# without restrictions in the region that is used.
 #
 # The AWS services that are global (Route53, certificates, IAM) can be seen but not be modified.
 #
 
-resource "aws_iam_policy" "AMIS_CICD_policy" {
-    name  = "${var.name_prefix}_CICD_Policy"
+resource "aws_iam_policy" "CICD_user_policy" {
+    name  = "${var.name_prefix}_CICD_user_policy"
     description = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     policy = <<EOF
 {
@@ -117,8 +106,8 @@ resource "aws_iam_policy" "AMIS_CICD_policy" {
                   "iam:PassRole"
 		],
 		"Effect": "Allow",
-		"Resource": ["arn:aws:iam::${var.account_number}:role/AMIS*",
-                             "arn:aws:iam::${var.account_number}:policy/AMIS*"]
+		"Resource": ["arn:aws:iam::${var.account_number}:role/${var.name_prefix}*",
+                             "arn:aws:iam::${var.account_number}:policy/${var.name_prefix}*"]
       },
       {
         "Action": [
@@ -157,8 +146,8 @@ EOF
 # kms: needed because AWS will encrypt the parameter with a default kms key. The public key is needed
 #      to decrypt it.
 
-resource "aws_iam_policy" "AMIS_CICD_lambda_accept_policy" {
-    name = "AMIS_CICD_lambda_accept_policy"
+resource "aws_iam_policy" "CICD_lambda_accept_policy" {
+    name = "${var.name_prefix}_CICD_lambda_accept_policy"
     description = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     policy = <<EOF
 {
@@ -192,8 +181,8 @@ EOF
 #      it will also be used to decrypt the encrypted text from the client ("till" that sends the number
 #      of sold items and the amout of money that is payed)
 
-resource "aws_iam_policy" "AMIS_CICD_lambda_decrypt_policy" {
-    name = "AMIS_CICD_lambda_decrypt_policy"
+resource "aws_iam_policy" "CICD_lambda_decrypt_policy" {
+    name = "${var.name_prefix}_CICD_lambda_decrypt_policy"
     description = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     policy = <<EOF
 {
@@ -226,8 +215,8 @@ EOF
 # kms: needed because AWS will encrypt the parameter with a default kms key. The public key is needed
 #      to decrypt it.
 
-resource "aws_iam_policy" "AMIS_CICD_lambda_process_policy" {
-    name = "AMIS_CICD_lambda_process_policy"
+resource "aws_iam_policy" "CICD_lambda_process_policy" {
+    name = "${var.name_prefix}_CICD_lambda_process_policy"
     description = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     policy = <<EOF
 {
@@ -256,8 +245,8 @@ resource "aws_iam_policy" "AMIS_CICD_lambda_process_policy" {
 EOF
 }
 
-resource "aws_iam_role" "AMIS_CICD_lambda_accept_role" {
-    name = "AMIS_CICD_lambda_accept_role"
+resource "aws_iam_role" "CICD_lambda_accept_role" {
+    name = "${var.name_prefix}_CICD_lambda_accept_role"
     description =  "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     force_detach_policies = true
     assume_role_policy =  <<EOF
@@ -276,8 +265,8 @@ resource "aws_iam_role" "AMIS_CICD_lambda_accept_role" {
 EOF
 } 
 
-resource "aws_iam_role" "AMIS_CICD_lambda_decrypt_role" {
-    name = "AMIS_CICD_lambda_decrypt_role"
+resource "aws_iam_role" "CICD_lambda_decrypt_role" {
+    name = "${var.name_prefix}_CICD_lambda_decrypt_role"
     description =  "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     force_detach_policies = true
     assume_role_policy =  <<EOF
@@ -296,8 +285,8 @@ resource "aws_iam_role" "AMIS_CICD_lambda_decrypt_role" {
 EOF
 } 
 
-resource "aws_iam_role" "AMIS_CICD_lambda_process_role" {
-    name = "AMIS_CICD_lambda_process_role"
+resource "aws_iam_role" "CICD_lambda_process_role" {
+    name = "${var.name_prefix}_CICD_lambda_process_role"
     description =  "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     force_detach_policies = true
     assume_role_policy =  <<EOF
@@ -317,51 +306,73 @@ EOF
 } 
 
 resource "aws_iam_policy_attachment" "policy_to_accept_role" {
-   name       = "policy_to_accept_role"
-   roles      = [aws_iam_role.AMIS_CICD_lambda_accept_role.name]
-   policy_arn = aws_iam_policy.AMIS_CICD_lambda_accept_policy.arn
+   name       = "${var.name_prefix}_policy_to_accept_role"
+   roles      = [aws_iam_role.CICD_lambda_accept_role.name]
+   policy_arn = aws_iam_policy.CICD_lambda_accept_policy.arn
 }
 
 resource "aws_iam_policy_attachment" "policy_to_decrypt_role" {
-   name       = "policy_to_decrypt_role"
-   roles      = [aws_iam_role.AMIS_CICD_lambda_decrypt_role.name]
-   policy_arn = aws_iam_policy.AMIS_CICD_lambda_decrypt_policy.arn
+   name       = "${var.name_prefix}_policy_to_decrypt_role"
+   roles      = [aws_iam_role.CICD_lambda_decrypt_role.name]
+   policy_arn = aws_iam_policy.CICD_lambda_decrypt_policy.arn
 }
 
 resource "aws_iam_policy_attachment" "policy_to_process_role" {
-   name       = "policy_to_process_role"
-   roles      = [aws_iam_role.AMIS_CICD_lambda_process_role.name]
-   policy_arn = aws_iam_policy.AMIS_CICD_lambda_process_policy.arn
+   name       = "${var.name_prefix}_policy_to_process_role"
+   roles      = [aws_iam_role.CICD_lambda_process_role.name]
+   policy_arn = aws_iam_policy.CICD_lambda_process_policy.arn
 }
 
 
-resource "aws_iam_user" "AMIS_user" {
+resource "aws_iam_user" "user" {
     count                    = var.number_of_users
     name                     = "${var.name_prefix}${count.index + var.offset_number_of_users}"
     force_destroy            = true
 }
 
-resource "aws_iam_group" "AMIS_group" {
-    name = "AMIS-Sig-CICD"
+resource "aws_iam_group" "group" {
+    name = "${var.name_prefix}-Sig-CICD-group"
 }
 
 resource "aws_iam_group_membership" "SIG_CICD" {
-    name  = "SIG-CICD-membership"
-    users = aws_iam_user.AMIS_user[*].name
-    group = aws_iam_group.AMIS_group.name
+    name  = "${var.name_prefix}_SIG-CICD-membership"
+    users = aws_iam_user.user[*].name
+    group = aws_iam_group.group.name
 }
 
 resource "aws_iam_group_policy_attachment" "SIG_CICD_Policy_attachment" {
-    group      = aws_iam_group.AMIS_group.name
-    policy_arn = aws_iam_policy.AMIS_CICD_policy.arn
+    group      = aws_iam_group.group.name
+    policy_arn = aws_iam_policy.CICD_user_policy.arn
 }
+
+#
+# Create as many keys as users
+#
+
+# Key itself
+
+resource "aws_kms_key" "amis" {
+    count                    = var.number_of_users
+    description              = "${var.name_prefix}${count.index + var.offset_number_of_users}"
+    key_usage                = "ENCRYPT_DECRYPT"
+    customer_master_key_spec = "RSA_2048"
+}
+
+# Alias ("name") for the key
+
+resource "aws_kms_alias" "amis" {
+  count          = var.number_of_users
+  name           = "alias/${var.key_prefix}${var.name_prefix}${count.index + var.offset_number_of_users}"
+  target_key_id  = aws_kms_key.amis[count.index].key_id 
+}
+
 
 #
 ## DynamoDB
 #
 
-resource "aws_dynamodb_table" "AMIS-shops" {
-    name           = "AMIS-shops"
+resource "aws_dynamodb_table" "shops-table" {
+    name           = "${var.name_prefix}-shops"
     billing_mode   = "PROVISIONED"
     read_capacity  = 1
     write_capacity = 1

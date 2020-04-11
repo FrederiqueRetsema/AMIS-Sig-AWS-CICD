@@ -238,7 +238,7 @@ resource "aws_sns_topic_subscription" "decrypt_to_lambda" {
 #                           SNS topic and the key prefix to the Lambda code.
 
 resource "aws_lambda_permission" "lambda_decrypt_permission" {
-  depends_on    = [aws_lambda_function.decrypt,aws_sns_topic.to_decrypt]
+  depends_on    = [aws_lambda_function.decrypt,aws_sns_topic_subscription.decrypt_to_lambda]
   statement_id  = "AllowExecutionFromSNSToDecrypt"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.decrypt.function_name
@@ -287,9 +287,11 @@ resource "aws_sns_topic_subscription" "process_to_lambda" {
 #                           and the Lambda function process.
 # - aws_lambda_function:    the actual Lambda function. The use of a zip file
 #                           is mandatory in Terraform.
+#                           We use environment variables to pass the prefix of the
+#                           table name to the Lambda code.
 
 resource "aws_lambda_permission" "lambda_process_permission" {
-  depends_on    = [aws_lambda_function.process, aws_sns_topic.to_process]
+  depends_on    = [aws_lambda_function.process, aws_sns_topic_subscription.process_to_lambda]
   statement_id  = "AllowExecutionFromSNSToProcess"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.process.function_name
@@ -303,6 +305,11 @@ resource "aws_lambda_function" "process" {
     role = data.aws_iam_role.lambda_process_role.arn
     handler = "process.lambda_handler"
     runtime = "python3.8"
+    environment {
+        variables = {
+            name_prefix = var.name_prefix
+        }
+    }
 }
 
 ##################################################################################

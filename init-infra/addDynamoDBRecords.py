@@ -20,11 +20,11 @@ def get_parameters():
       print ("This will add the records for 2 users (AMIS0 and AMIS1) to the database")
       sys.exit(1)
 
-  prefix                 = sys.argv[1]
+  name_prefix            = sys.argv[1]
   offset_number_of_users = int(sys.argv[2])
   number_of_users        = int(sys.argv[3])
 
-  return {"prefix": prefix, "offset_number_of_users": offset_number_of_users, "number_of_users": number_of_users}
+  return {"name_prefix": name_prefix, "offset_number_of_users": offset_number_of_users, "number_of_users": number_of_users}
 
 # add_records
 # -----------
@@ -36,9 +36,9 @@ def add_records(prefix, offset, number_of_users):
   for userNumber in range(number_of_users):
     dynamodb = boto3.client("dynamodb")
     dynamodb.put_item(
-      TableName='AMIS-shops',
+      TableName= name_prefix + '-shops',
       Item={
-          'shop_id'           : {'S': prefix+str(userNumber+offset)},
+          'shop_id'           : {'S': name_prefix + str(userNumber+offset)},
           'record_type'       : {'S': 's-00098'},
           'stock'             : {'N': '100000'},
           'gross_turnover'    : {'N': '0'},
@@ -48,9 +48,9 @@ def add_records(prefix, offset, number_of_users):
 
     
     dynamodb.put_item(
-      TableName='AMIS-shops',
+      TableName = name_prefix + '-shops',
       Item={
-          'shop_id'           : {'S': prefix+str(userNumber+offset)},
+          'shop_id'           : {'S': name_prefix + str(userNumber+offset)},
           'record_type'       : {'S': 's-12345'},
           'stock'             : {'N': '100000'},
           'gross_turnover'    : {'N': '0'},
@@ -59,9 +59,9 @@ def add_records(prefix, offset, number_of_users):
           'selling_price'     : {'N': '12.15'}})
     
     dynamodb.put_item(
-      TableName='AMIS-shops',
+      TableName = name_prefix + '-shops',
       Item={
-          'shop_id'           : {'S': prefix+str(userNumber+offset)},
+          'shop_id'           : {'S': name_prefix + str(userNumber+offset)},
           'record_type'       : {'S': 's-91279'},
           'stock'             : {'N': '100000'},
           'gross_turnover'    : {'N': '0'},
@@ -78,11 +78,11 @@ def add_records(prefix, offset, number_of_users):
 # Get parameters
 
 response        = get_parameters()
-prefix          = response["prefix"]
+name_prefix     = response["name_prefix"]
 offset          = response["offset_number_of_users"]
 number_of_users = response["number_of_users"]
 
 # Add records
 
-add_records(prefix, offset, number_of_users)
+add_records(name_prefix, offset, number_of_users)
 

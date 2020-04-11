@@ -37,8 +37,12 @@ def get_shop_id_and_decrypted_content(event):
 # record on the same time as we are changing it and that, if multiple functions try to change
 # the same record, other processes will have to wait until we are ready (vv). 
 # 
+# We use a dynamic prefix (can be found in the environment variables, will be put there by
+# the Terraform script)
 def update_dynamodb(shop_id, sales):
   try:
+
+    name_prefix = os.environ['name_prefix']
     
     for sales_item in sales:
       
@@ -52,7 +56,7 @@ def update_dynamodb(shop_id, sales):
      
       dynamodb = boto3.client('dynamodb')
       response = dynamodb.update_item (
-          TableName = "AMIS-shops",
+          TableName = name_prefix + "-shops",
           Key = {
             'shop_id': {"S":shop_id},
             'record_type' : {"S":record_type}
