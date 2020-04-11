@@ -4,8 +4,8 @@ These scripts are used to request or destroy the certificate that is used. See o
 description of the workshop. 
 
 When you want to use these scripts in your own AWS environment, please use the vagrant directory in this
-repository: this will save you a lot of configuration. When you use vagrant, you don't need to read the
-rest of this information.
+repository: this will save you a lot of manualconfiguration. When you use vagrant, you don't need to 
+read the rest of this information.
 
 ## Before initialization
 
@@ -15,16 +15,18 @@ terraform.exe file one level before the gitlab directory is. Relative to this pa
 Python3 and boto3 installed (though this specific directory only uses Terraform).
 
 The scripts use access keys of a user that is able to create and delete a certificate in the 
-CertificateManager.
+CertificateManager and is able to add or delete a DNS-record in your Route53 domain.
 
 Copy terraforms-template.tfvars from ../init-infra to ../../terraform.tfvars and change the content: add the 
-access key and the secret access key of an administrative user to this file. The cert scripts further only
-use the domain name. 
+access key and the secret access key of an administrator to this file.
 
 ## List of parameters in ../../terraform.tfvars
 
 The init-cert scripts use the same terraform.tfvars file as the files in the init-infra directory. See the 
 README.md file in init-infra for more information about these parameters.
+
+The terraform_cert.tf script will use just a few parameters. See the first lines in this file to see which
+parameters are used and which ones are not used.
 
 ## Shell scripts
 
@@ -41,12 +43,14 @@ After using `init-cert.sh`, you are ready to use `init-infra.sh` (in the init-in
 ### `destroy-cert.sh`
 
 When you want to stop, use the `destroy-shop.sh` (in the shop directory) to delete the shop objects.\
-When all shop objects are destroyed, you can use destroy-infra.sh to use `terraform destroy` to destroy all infra objects.
-When all infra objects are destroyed, you can use destroy-cert.sh to use `terraform destroy` to destroy the certificate and the Route53 objects.
+When all shop objects are destroyed, you can use destroy-infra.sh to use `terraform destroy` to destroy all infra objects. \
+When all infra objects are destroyed, you can use destroy-cert.sh to use `terraform destroy` to destroy the certificate 
+and the Route53 objects. See the warning in the README.md file of the vagrant directory about creating and deleting 
+certificate too often, you might want to keep the star certificate for later use.
 
 ### `clean-cert-dir.sh`
 
 When all objects are destroyed using the destroy-infra.sh script, you might want to delete the specific
 Terraform directories and files. This script will NOT delete the tfvars files in the ../.. directory,
-you might want to clean this up yourself.
+you might want to clean this up yourself after all objects are deleted.
 

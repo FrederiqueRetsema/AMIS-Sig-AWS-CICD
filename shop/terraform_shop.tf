@@ -133,7 +133,7 @@ resource "aws_api_gateway_domain_name" "api_gateway_domain_name" {
 }
 
 resource "aws_api_gateway_deployment" "deployment_prod" {
-  depends_on  = [aws_api_gateway_integration.integration, aws_api_gateway_rest_api.api_gateway, aws_api_gateway_resource.api_gateway_resource_shop, aws_api_gateway_method.api_gateway_method_prod]
+  depends_on  = [aws_api_gateway_integration.integration, aws_api_gateway_rest_api.api_gateway, aws_api_gateway_resource.api_gateway_resource_shop, aws_api_gateway_method.api_gateway_method_post]
   rest_api_id = aws_api_gateway_rest_api.api_gateway.id
   stage_name  = "prod"
 }

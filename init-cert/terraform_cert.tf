@@ -42,7 +42,7 @@ data "aws_route53_zone" "my_zone" {
 # Certificate: needed for use of domain within API gateway
 #
 
-resource "aws_acm_certificate" "cert" {
+resource "aws_acm_certificate" "certificate" {
   domain_name       = "*.${var.domainname}"
   validation_method = "DNS"
 
@@ -58,9 +58,9 @@ resource "aws_acm_certificate" "cert" {
 
 resource "aws_route53_record" "certificate_check_record" {
     zone_id  = data.aws_route53_zone.my_zone.zone_id
-    name     = aws_acm_certificate.cert.domain_validation_options[0].resource_record_name
-    type     = aws_acm_certificate.cert.domain_validation_options[0].resource_record_type
-    records  = [aws_acm_certificate.cert.domain_validation_options[0].resource_record_value]
+    name     = aws_acm_certificate.certificate.domain_validation_options[0].resource_record_name
+    type     = aws_acm_certificate.certificate.domain_validation_options[0].resource_record_type
+    records  = [aws_acm_certificate.certificate.domain_validation_options[0].resource_record_value]
     ttl      = "300"
 }
 

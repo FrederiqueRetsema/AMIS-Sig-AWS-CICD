@@ -2,7 +2,9 @@
 # ---------------------
 #
 # It would be better to do this in the terraform file, but there is an error in terraform that adding new records will give
-# an error. When terraform fixes this, this script will be deleted and will become part of the terraform_iam.tf config file.
+# an error. When this is fixed, this script will be deleted and will become part of the terraform_infra.tf config file.
+#
+# This script is called by init-infra.sh. Advice: don't start it manually, use init-infra.sh for that. 
 #
 
 import sys
@@ -16,8 +18,8 @@ import boto3
 def get_parameters():
 
   if (len(sys.argv) != 4):
-      print ("Add two arguments, f.e. ./addDynamoDBRecords.py AMIS 0 2")
-      print ("This will add the records for 2 users (AMIS0 and AMIS1) to the database")
+      print ("Add two arguments, f.e. ./addDynamoDBRecords.py AMIS 1 2")
+      print ("This will add the records for 2 users (AMIS1 and AMIS2) to the database")
       sys.exit(1)
 
   name_prefix            = sys.argv[1]

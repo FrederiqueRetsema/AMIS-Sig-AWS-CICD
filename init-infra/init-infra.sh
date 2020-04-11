@@ -39,21 +39,21 @@ echo "last_number_of_users   = ${last_number_of_users}"
 ../../terraform init --var-file=../../terraform.tfvars
 if (test $? -ne 0)
 then
-  echo Init failed
+  echo "Init of infra failed"
   exit 1
 fi
 
 ../../terraform plan --var-file=../../terraform.tfvars --out terraform.tfplans
 if (test $? -ne 0)
 then
-  echo Plan failed
+  echo "Plan of infra failed"
   exit 1
 fi
 
 ../../terraform apply "terraform.tfplans"
 if (test $? -ne 0)
 then
-  echo Apply failed
+  echo "Apply of infra failed"
   exit 1
 fi
 

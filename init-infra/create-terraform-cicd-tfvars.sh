@@ -4,12 +4,13 @@
 
 # It will add the access key and the secret access key from the first
 # user that is created by running the terraform scripts. (This is
-# defined in the init-shop.sh script, we get the created-access-keys.txt
+# defined in the init-infra.sh script, we get the created-access-keys.txt
 # file from that script).
 #
 # It will assume that the first user is the default user that is to 
 # be used by the init-shop.sh install script. If this isn't the case,
-# change ../../terraform-cicd.tfvars to the user you want to deploy to.
+# change ../../terraform-cicd.tfvars manually and change the user_prefix
+# to the name of the user you want to deploy to.
 #
 # The name_prefix, key_prefix, aws_region, offset_number_of_users, 
 # and the domainname will be retrieved from the ../../terraform.tfvars 
@@ -26,10 +27,11 @@
 #                  nameprefix             = "AMIS"
 #         awk -F "\"" will set the seperator to double quote. So in the
 #              previous example, $2 will be 
-#                  AMIS. 
+#                  AMIS.
 #
-# Format created-access-keys.txt is "name": "value", so when the delimiter 
-#         is =, we need $4, not $2
+# Format created-access-keys.txt is json, so when we grep we get 
+#         "name": "value". When the delimiter is double quotes, we need $4, 
+#         not $2
 #
 # Numbers, like offset_number_of_users: likewise, but here the seperator 
 #         is the = character (numerical values don't have a double quote), 
@@ -48,9 +50,6 @@ name_prefix=`grep name_prefix ../../terraform.tfvars | awk -F"\"" '{print $2}'`
 key_prefix=`grep key_prefix ../../terraform.tfvars | awk -F"\"" '{print $2}'`
 
 offset_number_of_users=`grep offset_number_of_users ../../terraform.tfvars | awk -F"=" '{print $2}'|tr -d '[:space:]'`
-
-# The output in the created-access-keys.txt is json. Therefore the seperation character is a colon.
-# We don't need double quotes ("), by using seperator \" we will get the text that we -are- interested in in $2.
 
 echo "aws_access_key = \"${aws_access_key}\"" > ../../terraform-cicd.tfvars
 echo "aws_secret_key = \"${aws_secret_key}\"" >> ../../terraform-cicd.tfvars

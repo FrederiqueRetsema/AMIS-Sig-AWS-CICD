@@ -6,19 +6,24 @@ This directory contains the Vagrant file, which can be used to install the envir
 
 Instructions:
 1) Install vagrant (see https://vagrantup.com/downloads.html) and virtual box (see https://virtualbox.org/wiki/Downloads) on your machine
-2) Take care that "hypervisorlaunchtype" in bcdedit is switched to "off". You can check this with `bcdedit` (without parameters) in an administrator cmd session, you can switch this from Hyper-V to VirtualBox by setting `bcdedit /set hypervisorlaunchtype off`. When you want to use Hyper-V again, you can switch back with `bcdedit /set hypervisorlaunchtype auto`. In both cases, you need a restart of the computer after this change.
-3) Start cmd, go to the directory with the Vagrant file and type `vagrant up`. This will download and install the OS, update  yum and download and install the relevant software packages.
+2) Take care that "hypervisorlaunchtype" in bcdedit is switched to "off". You can check this with `bcdedit` (without parameters) in an administrator cmd session, you can switch this from Hyper-V to VirtualBox by the command `bcdedit /set hypervisorlaunchtype off`. When you want to use Hyper-V again, you can switch back with `bcdedit /set hypervisorlaunchtype auto`. In both cases, you need a restart of the computer after this change.
+3) Start cmd, go to the directory with the Vagrant file and type `vagrant up`. This will download and install the OS, use yum update to install updates and download and install the relevant software packages.
 4) When `vagrant up` is ready then use `vagrant ssh` to ssh into the virtual machine. You don't have to enter a password here. When you want to use the VirtualBox environment to log on, you can do so by using user `vagrant` with password `vagrant`.
-5) In the home directory of vagrant is a file `install.sh`. Start this file (`./init-all.sh`). It will ask you to provide an access key and a secret access key, and a domain name you own. If you don't know how to get these, this is explained below.
+5) In the home directory of vagrant is a file `init-all.sh`. Start this file (`./init-all.sh`). It will ask you to provide an access key and a secret access key, a default region, etc. If you don't know how to get these, this is explained below.
 
 When all questions are asked, the environment will build itself. This is done by deploying multiple terraform scripts in the directories under AMIS-Sig-AWS-CICD. Each directory contains init-xxx.sh and destroy-xxx.sh scripts. You can use these as you please. Please be aware that if you use the script clean-xxx-dir.sh while there are still objects in AWS, these objects WILL NOT be destroyed when you use the destroy-xxx.sh scripts. If you never worked with terraform before, then don't use the clean scripts - you will not need them.
+
+`init-all.sh` will use the following order to install: \
+- init-cert -> to request a star certificate (if necessary) for your domain \
+- init-infra -> to create IAM (users, groups, permissions etc), DynamoDB (database table) and KMS (keys) objects \
+- init-shop -> will enroll the objects for the shop: DNS-record, API Gateway, Lambda functions, SNS topics
 
 ## Destroy the environment
 
 To destroy the environment in AWS and the vagrant file itself:
-1) Use `destroy-all.sh` in the home directory of vagrant to destroy all the environments in AWS. You will be asked several times if you want to destroy objects. Type "yes" (and enter) on all questions (maybe except for the last one, because you might need the certificate for later tests - see the paragraph "warning for AWS limits on certificates" below).
+1) Use `destroy-all.sh` in the home directory of vagrant to destroy all the environments in AWS. You will be asked several times if you want to destroy objects. Type "yes" (and enter) on all questions (maybe except for the last one, because you might need the star certificate for later - see the paragraph "warning for AWS limits on certificates" below).
 2) Use "exit" to go back to the cmd shell on your PC
-3) Use `vagrant halt` to stop the VM. If you want to continue later, you can use `vagrant up` to start the VM again and `vagrant ssh` to enter the VM. The init-all.sh file will deploy the environment to AWS again, without asking you questions.
+3) Use `vagrant halt` to stop the VM. If you want to continue later, you can use `vagrant up` to start the VM again and `vagrant ssh` to enter the VM. The init-all.sh file will see what objects or directories are missing and will roll out the environment to AWS again, without asking you questions that it already has the answer for.
 4) Use  `vagrant destroy` to destroy the VM. Please use this with care: when you destroyed the VM when there were still objects in AWS, you might have to delete these by hand.
 
 ## Creating access keys and secret access keys
@@ -51,6 +56,11 @@ Advice: if you use a certificate only for this shop example, then create the cer
 
 After the last blog, you might want to destroy the certificate. 
 
+## What to do when I cannot destroy the environment via Terraform?
+
+A full description of the objects that are created by the Terraform scripts can be found in the faq. You can use the GUI to go to the relevant services and delete the objects by hand.
+
 ## Questions
 
 I made a FAQ to answer frequently asked questions (and their answers). You can find it in the same directory as this README.md (and vagrant) file.
+
