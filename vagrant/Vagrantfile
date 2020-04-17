@@ -10,8 +10,8 @@ Vagrant.configure(2) do |config|
 
   config.vm.provider "virtualbox" do |vb|
     vb.name = 'centos7-sig-cicd2'
-    vb.memory = 4096
-    vb.cpus = 2
+    vb.memory = 8092
+    vb.cpus = 4
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
     vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
   end

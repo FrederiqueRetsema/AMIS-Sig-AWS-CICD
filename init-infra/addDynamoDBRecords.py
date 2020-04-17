@@ -19,7 +19,7 @@ def get_parameters():
 
   if (len(sys.argv) != 4):
       print ("Add two arguments, f.e. ./addDynamoDBRecords.py AMIS 1 2")
-      print ("This will add the records for 2 users (AMIS1 and AMIS2) to the database")
+      print ("This will add the records for 2 shops (AMIS1 and AMIS2) to the database")
       sys.exit(1)
 
   name_prefix            = sys.argv[1]
@@ -30,7 +30,7 @@ def get_parameters():
 
 # add_records
 # -----------
-# Add three records for each user to the database
+# Add three records for each shop to the database
 #
 
 def add_records(prefix, offset, number_of_users):

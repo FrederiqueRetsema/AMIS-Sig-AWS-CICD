@@ -6,7 +6,7 @@ account_number         = "your_account_number"
 domainname             = "retsema.eu"
 
 name_prefix            = "AMIS"
-key_prefix             = "KeyI-"
+key_prefix             = "KeyL-"
 
 number_of_users        = 2
 offset_number_of_users = 1

@@ -4,7 +4,8 @@
 # In this way, it is more clear which files are relevant for source control - and which ones are not.
 #
 # Using this script when there are still objects in AWS is dangerous: terraform (and therefore: the 
-# destroy scripts) cannot destroy them for you. Use this script with caution.
+# destroy scripts) cannot destroy them for you. Use this script with caution, in general you will not
+# need it as a user of this repository.
 
 # Remove files
 #
@@ -32,6 +33,4 @@ cd ../..
 cd lambdas/process
 rm -f *zip
 cd ../..
-
-
 

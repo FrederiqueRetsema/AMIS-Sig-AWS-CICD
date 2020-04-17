@@ -1,4 +1,4 @@
-##################################################################################
+#me#################################################################################
 # VARIABLES
 ##################################################################################
 
@@ -35,6 +35,10 @@ data "aws_acm_certificate" "domain_certificate" {
 
 data "aws_route53_zone" "zone" {
     name = var.domainname
+}
+
+data "aws_iam_policy" "AmazonAPIGatewayPushToCloudWatchLogs" {
+    arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs" 
 }
 
 ##################################################################################
@@ -347,6 +351,35 @@ resource "aws_iam_policy_attachment" "policy_to_process_role" {
    name       = "${var.name_prefix}_policy_to_process_role"
    roles      = [aws_iam_role.lambda_process_role.name]
    policy_arn = aws_iam_policy.lambda_process_policy.arn
+}
+
+# AmazonAPIGatewayPushToCloudWatchLogs
+# Needed to log what happens in the API gateway
+
+resource "aws_iam_role" "api_gateway_role" {
+    name                  = "${var.name_prefix}_api_gateway_role"
+    description           = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
+    force_detach_policies = true
+    assume_role_policy    = <<EOF
+{
+    "Version" : "2012-10-17" ,
+    "Statement" : [
+        {
+            "Effect" : "allow",
+            "Principal" : {
+                "Service": "apigateway.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+        }
+    ]
+} 
+EOF
+}
+
+resource "aws_iam_policy_attachment" "policy_to_cloudwatch_role" {
+    name       = "${var.name_prefix}_policy_to_cloudwatch_role"
+    roles      = [aws_iam_role.api_gateway_role.name]
+    policy_arn = data.aws_iam_policy.AmazonAPIGatewayPushToCloudWatchLogs.arn
 }
 
 # IAM users

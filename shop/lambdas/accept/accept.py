@@ -69,7 +69,9 @@ def lambda_handler(event, context):
             ", context.log_group_name: " + context.log_group_name + \
             ", context.log_stream_name: "+context.log_stream_name)
 
-  return { "statusCode": statusCode, "body": json.dumps(returnMessage) }
+  return { "statusCode": statusCode, 
+           "headers"   : { "Content-Type" : "application/json" },
+           "body"      : json.dumps(returnMessage) }
 
 
 

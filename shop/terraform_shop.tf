@@ -2,15 +2,18 @@
 # VARIABLES
 ##################################################################################
 
-variable "aws_access_key" {}
-variable "aws_secret_key" {}
-variable "aws_region"     {}
+variable "aws_access_key"         {}
+variable "aws_secret_key"         {}
+variable "aws_region"             {}
 
-variable "domainname"     {}
+variable "domainname"             {}
 
-variable "name_prefix"    {}
-variable "user_prefix"    {}
-variable "key_prefix"     {}
+variable "name_prefix"            {}
+variable "user_prefix"            {}
+variable "key_prefix"             {}
+
+variable "stage_name"             { default = "prod" }
+variable "log_level_api_gateway"  { default = "INFO" }
 
 ##################################################################################
 # PROVIDERS
@@ -25,6 +28,10 @@ provider "aws" {
 ##################################################################################
 # DATA
 ##################################################################################
+
+data "aws_iam_role" "api_gateway_role" {
+    name = "${var.name_prefix}_api_gateway_role"
+}
 
 data "aws_iam_role" "lambda_accept_role" {
     name = "${var.name_prefix}_CICD_lambda_accept_role"
@@ -103,7 +110,8 @@ resource "aws_route53_record" "myshop_dns_record" {
 #                                       API gateway that it is using
 #                                       (only used when you use a route 53 DNS entry to go to the 
 #                                        API gateway)
-# - aws_api_gateway_deployment        : is the version of the API. We only use prod in our
+# - aws_api_gateway_stage             : stage for this solution (default prod, see variables)
+# - aws_api_gateway_deployment        : is the version of the API. We only use one stage in our
 #                                       example. This is also the object that contains the DNS
 #                                       for the API, f.e.
 #                                       https://4rgbh0ivlf.execute-api.eu-west-1.amazonaws.com/prod )
@@ -116,10 +124,10 @@ resource "aws_route53_record" "myshop_dns_record" {
 #                                       function that is behind it. 
 #
 
-resource "aws_api_gateway_base_path_mapping" "map_shop_prod_to_api_gateway_domain" {
-  depends_on  = [aws_api_gateway_rest_api.api_gateway, aws_api_gateway_deployment.deployment_prod, aws_api_gateway_domain_name.api_gateway_domain_name]
+resource "aws_api_gateway_base_path_mapping" "map_shop_stage_name_to_api_gateway_domain" {
+  depends_on  = [aws_api_gateway_rest_api.api_gateway, aws_api_gateway_deployment.deployment, aws_api_gateway_domain_name.api_gateway_domain_name]
   api_id      = aws_api_gateway_rest_api.api_gateway.id
-  stage_name  = aws_api_gateway_deployment.deployment_prod.stage_name
+  stage_name  = aws_api_gateway_stage.stage.stage_name
   domain_name = aws_api_gateway_domain_name.api_gateway_domain_name.domain_name
 }
 
@@ -132,10 +140,19 @@ resource "aws_api_gateway_domain_name" "api_gateway_domain_name" {
   }
 }
 
-resource "aws_api_gateway_deployment" "deployment_prod" {
-  depends_on  = [aws_api_gateway_integration.integration, aws_api_gateway_rest_api.api_gateway, aws_api_gateway_resource.api_gateway_resource_shop, aws_api_gateway_method.api_gateway_method_post]
+resource "aws_api_gateway_stage" "stage" {
+  stage_name    = var.stage_name
+  rest_api_id   = aws_api_gateway_rest_api.api_gateway.id
+  deployment_id = aws_api_gateway_deployment.deployment.id
+}
+
+resource "aws_api_gateway_deployment" "deployment" {
+  depends_on  = [aws_api_gateway_integration.integration,aws_api_gateway_rest_api.api_gateway, aws_api_gateway_resource.api_gateway_resource_shop, aws_api_gateway_method.api_gateway_method_post]
   rest_api_id = aws_api_gateway_rest_api.api_gateway.id
-  stage_name  = "prod"
+}
+
+resource "aws_api_gateway_account" "api_gateway_account" {
+  cloudwatch_role_arn = data.aws_iam_role.api_gateway_role.arn
 }
 
 resource "aws_api_gateway_rest_api" "api_gateway" {
@@ -154,7 +171,7 @@ resource "aws_api_gateway_resource" "api_gateway_resource_shop" {
 }
 
 resource "aws_api_gateway_method" "api_gateway_method_post" {
-  depends_on     = [aws_api_gateway_rest_api.api_gateway, aws_api_gateway_resource.api_gateway_resource_shop, aws_lambda_function.accept]
+  depends_on     = [aws_api_gateway_rest_api.api_gateway, aws_api_gateway_resource.api_gateway_resource_shop]
   rest_api_id    = aws_api_gateway_rest_api.api_gateway.id
   resource_id    = aws_api_gateway_resource.api_gateway_resource_shop.id
   http_method    = "POST"
@@ -162,8 +179,19 @@ resource "aws_api_gateway_method" "api_gateway_method_post" {
   request_models = {"application/json"="Empty"}
 }
 
+resource "aws_api_gateway_method_settings" "method_settings" {
+  rest_api_id    = aws_api_gateway_rest_api.api_gateway.id
+  stage_name     = aws_api_gateway_stage.stage.stage_name
+  method_path    = "*/*"
+
+  settings {
+    metrics_enabled = true
+    logging_level   = var.log_level_api_gateway
+  }
+}
+
 resource "aws_api_gateway_integration" "integration" {
-  depends_on              = [aws_api_gateway_rest_api.api_gateway, aws_api_gateway_resource.api_gateway_resource_shop, aws_api_gateway_method.api_gateway_method_post, aws_lambda_function.accept]
+  depends_on              = [aws_api_gateway_rest_api.api_gateway, aws_api_gateway_resource.api_gateway_resource_shop, aws_api_gateway_method.api_gateway_method_post, aws_lambda_function.accept, aws_lambda_permission.lambda_accept_permission]
   rest_api_id             = aws_api_gateway_rest_api.api_gateway.id
   resource_id             = aws_api_gateway_resource.api_gateway_resource_shop.id
   http_method             = aws_api_gateway_method.api_gateway_method_post.http_method
@@ -185,7 +213,7 @@ resource "aws_api_gateway_integration" "integration" {
 #                           SNS topic to the Lambda code.
 # 
 resource "aws_lambda_permission" "lambda_accept_permission" {
-  depends_on    = [aws_lambda_function.accept, aws_api_gateway_integration.integration]
+  depends_on    = [aws_lambda_function.accept]
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.accept.function_name
@@ -193,7 +221,7 @@ resource "aws_lambda_permission" "lambda_accept_permission" {
 }
 
 resource "aws_lambda_function" "accept" {
-    depends_on    = [aws_api_gateway_resource.api_gateway_resource_shop]
+    depends_on    = [aws_api_gateway_method.api_gateway_method_post]
     function_name = "${var.user_prefix}_accept"
     filename      = "./lambdas/accept/accept.zip"
     role          = data.aws_iam_role.lambda_accept_role.arn
@@ -219,6 +247,7 @@ resource "aws_sns_topic" "to_decrypt" {
 }
 
 resource "aws_sns_topic_subscription" "to_decrypt_subscription" {
+  depends_on = [aws_lambda_permission.lambda_decrypt_permission]
   topic_arn  = aws_sns_topic.to_decrypt.arn
   protocol   = "lambda"
   endpoint   = aws_lambda_function.decrypt.arn
@@ -237,7 +266,7 @@ resource "aws_sns_topic_subscription" "to_decrypt_subscription" {
 #                           SNS topic and the key prefix to the Lambda code.
 
 resource "aws_lambda_permission" "lambda_decrypt_permission" {
-  depends_on    = [aws_lambda_function.decrypt,aws_sns_topic_subscription.to_decrypt_subscription]
+  depends_on    = [aws_lambda_function.decrypt]
   statement_id  = "AllowExecutionFromSNSToDecrypt"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.decrypt.function_name
@@ -272,9 +301,10 @@ resource "aws_sns_topic" "to_process" {
 }
 
 resource "aws_sns_topic_subscription" "to_process_subscription" {
-  topic_arn = aws_sns_topic.to_process.arn
-  protocol  = "lambda"
-  endpoint  = aws_lambda_function.process.arn
+  depends_on = [aws_lambda_permission.lambda_process_permission]
+  topic_arn  = aws_sns_topic.to_process.arn
+  protocol   = "lambda"
+  endpoint   = aws_lambda_function.process.arn
 }
 
 # Lambda process
@@ -290,7 +320,7 @@ resource "aws_sns_topic_subscription" "to_process_subscription" {
 #                           table name to the Lambda code.
 
 resource "aws_lambda_permission" "lambda_process_permission" {
-  depends_on    = [aws_lambda_function.process, aws_sns_topic_subscription.to_process_subscription]
+  depends_on    = [aws_lambda_function.process]
   statement_id  = "AllowExecutionFromSNSToProcess"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.process.function_name
@@ -319,6 +349,6 @@ resource "aws_lambda_function" "process" {
 ##################################################################################
 
 output "invoke_url" {
-  value = "${aws_api_gateway_deployment.deployment_prod.invoke_url}/${aws_api_gateway_resource.api_gateway_resource_shop.path_part}"
+  value = "${aws_api_gateway_deployment.deployment.invoke_url}${aws_api_gateway_stage.stage.stage_name}/${aws_api_gateway_resource.api_gateway_resource_shop.path_part}"
 }
 
