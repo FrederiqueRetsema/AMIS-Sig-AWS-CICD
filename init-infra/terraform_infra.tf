@@ -4,7 +4,8 @@
 
 variable "aws_access_key"         {}
 variable "aws_secret_key"         {}
-variable "aws_region"             {}
+variable "aws_region_name"        {}
+variable "aws_region_abbr"        {}
 
 variable "account_number"         {}
 variable "domainname"             {}
@@ -22,19 +23,32 @@ variable "offset_number_of_users" {}
 provider "aws" {
   access_key = var.aws_access_key
   secret_key = var.aws_secret_key
-  region     = var.aws_region
+  region     = var.aws_region_name
 }
 
 ##################################################################################
 # DATA
+#
+# We need the VPC to determine which private zone we should take in Route53: 
+# there is 1 private zone per region. The VPC's are all called <prefix>-sig
+# but because they are each in a different region, this doesn't matter. We
+# take the one in the region we are using now.
 ##################################################################################
 
-data "aws_acm_certificate" "domain_certificate" {
-    domain = "*.${var.domainname}"
-}
+#data "aws_acm_certificate" "domain_certificate" {
+#    domain = "*.${var.domainname}"
+#}
 
 data "aws_route53_zone" "zone" {
-    name = var.domainname
+    name         = var.domainname
+    private_zone = true
+    vpc_id       = data.aws_vpc.vpc.id
+}
+
+data "aws_vpc" "vpc" {
+  tags = {
+    Name = "${var.name_prefix}-sig"
+  }
 }
 
 data "aws_iam_policy" "AmazonAPIGatewayPushToCloudWatchLogs" {
@@ -67,8 +81,86 @@ data "aws_iam_policy" "AmazonAPIGatewayPushToCloudWatchLogs" {
 # The AWS services that are global (Route53, certificates, IAM) can be seen but not be modified.
 #
 
+#resource "aws_iam_policy" "user_policy" {
+#    name        = "${var.name_prefix}_CICD_user_policy"
+#    description = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
+#    policy      = <<EOF
+#{
+#    "Version": "2012-10-17",
+#    "Statement": [
+#      {
+#        "Action": [
+#                  "acm:ListCertificates",
+#                  "acm:ListTagsForCertificate"
+##		],
+#		"Effect": "Allow",
+#		"Resource": "*"
+#      },
+#      {
+#        "Action": [
+#                  "acm:DescribeCertificate"
+#		],
+#		"Effect": "Allow",
+#		"Resource": "${data.aws_acm_certificate.domain_certificate.arn}"
+#      },
+#      {
+#
+#        "Action": [
+#                  "route53:ListResourceRecordSets",
+#                  "route53:ListTagsForResource",
+#                  "route53:GetHostedZone",
+#                  "route53:ChangeResourceRecordSets"
+#                ],
+#		"Effect": "Allow",
+#	        "Resource": "arn:aws:route53:::hostedzone/${data.aws_route53_zone.zone.zone_id}"
+#      },
+#      {
+#        "Action": [
+#                  "iam:ListRolePolicies",
+#                  "iam:ListAttachedRolePolicies",
+#                  "iam:GetRole",
+#                  "iam:GetPolicy",
+#                  "iam:GetPolicyVersion",
+#                  "iam:PassRole"
+#		],
+#		"Effect": "Allow",
+#		"Resource": ["arn:aws:iam::${var.account_number}:role/${var.name_prefix}*",
+#                             "arn:aws:iam::${var.account_number}:policy/${var.name_prefix}*"]
+#      },
+#      {
+#        "Action": [
+#                  "kms:GetPublicKey"
+#		],
+#		"Effect": "Allow",
+#		"Resource": "arn:aws:kms:eu-west-1:${var.account_number}:key/${var.name_prefix}*"
+#      },
+#      {
+#        "Action": [
+#                  "route53:ListHostedZones",
+#                  "route53:GetHostedZoneCount",
+#                  "route53:GetChange",
+#                  "iam:ListRoles",
+#                  "iam:ListPolicies",
+#                  "kms:ListKeys",
+#                  "kms:ListAliases",
+#                  "apigateway:*",
+#		  "lambda:*",
+#                  "sns:*",
+#                  "dynamodb:*",
+#		  "cloudformation:*",
+#		  "cloudwatch:describe*",
+#		  "cloudwatch:get*"
+#		],
+#		"Effect": "Allow",
+#		"Resource": "*"
+#	  }
+#	]
+#}
+#EOF
+#}
+
 resource "aws_iam_policy" "user_policy" {
-    name        = "${var.name_prefix}_CICD_user_policy"
+    name        = "${var.name_prefix}_${var.aws_region_abbr}_CICD_user_policy"
     description = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     policy      = <<EOF
 {
@@ -87,7 +179,7 @@ resource "aws_iam_policy" "user_policy" {
                   "acm:DescribeCertificate"
 		],
 		"Effect": "Allow",
-		"Resource": "${data.aws_acm_certificate.domain_certificate.arn}"
+		"Resource": "*"
       },
       {
 
@@ -155,7 +247,7 @@ EOF
 #       The public key is needed to decrypt it.
 
 resource "aws_iam_policy" "lambda_accept_policy" {
-    name        = "${var.name_prefix}_CICD_lambda_accept_policy"
+    name        = "${var.name_prefix}_${var.aws_region_abbr}_CICD_lambda_accept_policy"
     description = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     policy      = <<EOF
 {
@@ -173,7 +265,7 @@ resource "aws_iam_policy" "lambda_accept_policy" {
 		"Resource": "*",
                 "Condition": {
                    "StringEquals": {
-                       "aws:RequestedRegion": "${var.aws_region}"
+                       "aws:RequestedRegion": "${var.aws_region_name}"
                    }
                 }
 	}
@@ -193,7 +285,7 @@ EOF
 #       Decrypt is used to decrypt the encrypted text from the client ("cash machine")
 
 resource "aws_iam_policy" "lambda_decrypt_policy" {
-    name        = "${var.name_prefix}_CICD_lambda_decrypt_policy"
+    name        = "${var.name_prefix}_${var.aws_region_abbr}_CICD_lambda_decrypt_policy"
     description = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     policy      = <<EOF
 {
@@ -212,7 +304,7 @@ resource "aws_iam_policy" "lambda_decrypt_policy" {
 		"Resource": "*",
                 "Condition": {
                    "StringEquals": {
-                       "aws:RequestedRegion": "${var.aws_region}"
+                       "aws:RequestedRegion": "${var.aws_region_name}"
                    }
                 }
 	}
@@ -231,7 +323,7 @@ EOF
 #           to decrypt it.
 
 resource "aws_iam_policy" "lambda_process_policy" {
-    name        = "${var.name_prefix}_CICD_lambda_process_policy"
+    name        = "${var.name_prefix}_${var.aws_region_abbr}_CICD_lambda_process_policy"
     description = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     policy      = <<EOF
 {
@@ -251,7 +343,7 @@ resource "aws_iam_policy" "lambda_process_policy" {
 		"Resource": "*",
                 "Condition": {
                    "StringEquals": {
-                       "aws:RequestedRegion": "${var.aws_region}"
+                       "aws:RequestedRegion": "${var.aws_region_name}"
                    }
                 }
       }
@@ -266,7 +358,7 @@ EOF
 #
 
 resource "aws_iam_role" "lambda_accept_role" {
-    name                  = "${var.name_prefix}_CICD_lambda_accept_role"
+    name                  = "${var.name_prefix}_${var.aws_region_abbr}_CICD_lambda_accept_role"
     description           =  "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     force_detach_policies = true
     assume_role_policy    =  <<EOF
@@ -286,7 +378,7 @@ EOF
 } 
 
 resource "aws_iam_policy_attachment" "policy_to_accept_role" {
-   name       = "${var.name_prefix}_policy_to_accept_role"
+   name       = "${var.name_prefix}_${var.aws_region_abbr}_policy_to_accept_role"
    roles      = [aws_iam_role.lambda_accept_role.name]
    policy_arn = aws_iam_policy.lambda_accept_policy.arn
 }
@@ -297,7 +389,7 @@ resource "aws_iam_policy_attachment" "policy_to_accept_role" {
 #
 
 resource "aws_iam_role" "lambda_decrypt_role" {
-    name = "${var.name_prefix}_CICD_lambda_decrypt_role"
+    name = "${var.name_prefix}_${var.aws_region_abbr}_CICD_lambda_decrypt_role"
     description =  "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     force_detach_policies = true
     assume_role_policy =  <<EOF
@@ -317,7 +409,7 @@ EOF
 } 
 
 resource "aws_iam_policy_attachment" "policy_to_decrypt_role" {
-   name       = "${var.name_prefix}_policy_to_decrypt_role"
+   name       = "${var.name_prefix}_${var.aws_region_abbr}_policy_to_decrypt_role"
    roles      = [aws_iam_role.lambda_decrypt_role.name]
    policy_arn = aws_iam_policy.lambda_decrypt_policy.arn
 }
@@ -328,7 +420,7 @@ resource "aws_iam_policy_attachment" "policy_to_decrypt_role" {
 #
 
 resource "aws_iam_role" "lambda_process_role" {
-    name = "${var.name_prefix}_CICD_lambda_process_role"
+    name = "${var.name_prefix}_${var.aws_region_abbr}_CICD_lambda_process_role"
     description =  "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     force_detach_policies = true
     assume_role_policy =  <<EOF
@@ -348,7 +440,7 @@ EOF
 } 
 
 resource "aws_iam_policy_attachment" "policy_to_process_role" {
-   name       = "${var.name_prefix}_policy_to_process_role"
+   name       = "${var.name_prefix}_${var.aws_region_abbr}_policy_to_process_role"
    roles      = [aws_iam_role.lambda_process_role.name]
    policy_arn = aws_iam_policy.lambda_process_policy.arn
 }
@@ -357,7 +449,7 @@ resource "aws_iam_policy_attachment" "policy_to_process_role" {
 # Needed to log what happens in the API gateway
 
 resource "aws_iam_role" "api_gateway_role" {
-    name                  = "${var.name_prefix}_api_gateway_role"
+    name                  = "${var.name_prefix}_${var.aws_region_abbr}_api_gateway_role"
     description           = "Policy for CI CD workshop on 01-07-2020. More info Frederique Retsema 06-823 90 591."
     force_detach_policies = true
     assume_role_policy    = <<EOF
@@ -377,7 +469,7 @@ EOF
 }
 
 resource "aws_iam_policy_attachment" "policy_to_cloudwatch_role" {
-    name       = "${var.name_prefix}_policy_to_cloudwatch_role"
+    name       = "${var.name_prefix}_${var.aws_region_abbr}_policy_to_cloudwatch_role"
     roles      = [aws_iam_role.api_gateway_role.name]
     policy_arn = data.aws_iam_policy.AmazonAPIGatewayPushToCloudWatchLogs.arn
 }
@@ -395,11 +487,11 @@ resource "aws_iam_user" "user" {
 }
 
 resource "aws_iam_group" "user_group" {
-    name = "${var.name_prefix}-Sig-CICD-group"
+    name = "${var.name_prefix}-${var.aws_region_abbr}_Sig-CICD-group"
 }
 
 resource "aws_iam_group_membership" "user_group_membership" {
-    name  = "${var.name_prefix}_SIG-CICD-group_membership"
+    name  = "${var.name_prefix}_${var.aws_region_abbr}_SIG-CICD-group_membership"
     users = aws_iam_user.user[*].name
     group = aws_iam_group.user_group.name
 }

@@ -1,5 +1,5 @@
-# destroy-cert.sh
-# ---------------
+# destroy-domain-vpc-and-cert.sh
+# ------------------------------
 # Used to destroy the terraform environment. 
 
 # WARNING: 
@@ -10,7 +10,7 @@
 ../../terraform destroy --var-file=../../terraform.tfvars 
 if (test $? -ne 0)
 then
-    print "Destroy of certificate failed"
+    echo "Destroy of domain, vpc and certificate failed"
     exit 1
 fi
 

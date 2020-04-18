@@ -4,7 +4,8 @@
 
 variable "aws_access_key"         {}
 variable "aws_secret_key"         {}
-variable "aws_region"             {}
+variable "aws_region_name"        {}
+variable "aws_region_abbr"        {}
 
 variable "domainname"             {}
 
@@ -45,12 +46,13 @@ data "aws_iam_role" "lambda_process_role" {
     name = "${var.name_prefix}_CICD_lambda_process_role"
 }
 
-data "aws_acm_certificate" "domain_certificate" {
-    domain = "*.${var.domainname}"
-}
+#data "aws_acm_certificate" "domain_certificate" {
+#    domain = "*.${var.domainname}"
+#}
 
 data "aws_route53_zone" "my_zone" {
-    name = var.domainname
+    name         = var.domainname
+    private_zone = true
 }
 
 ##################################################################################
@@ -73,9 +75,9 @@ data "aws_route53_zone" "my_zone" {
 # Is needed to be sure that the certificate is validated
 #
 
-resource "aws_acm_certificate_validation" "mycertificate_validation" {
-    certificate_arn = data.aws_acm_certificate.domain_certificate.arn
-}
+#resource "aws_acm_certificate_validation" "mycertificate_validation" {
+#  certificate_arn = data.aws_acm_certificate.domain_certificate.arn
+#}
 
 #
 # Route 53
@@ -83,17 +85,17 @@ resource "aws_acm_certificate_validation" "mycertificate_validation" {
 # DNS-entry for <user_prefix>.<your domainname>, will point to the gateway domain
 #
 
-resource "aws_route53_record" "myshop_dns_record" {
-    zone_id = data.aws_route53_zone.my_zone.zone_id
-    name    = lower(var.user_prefix)
-    type    = "A"
-
-    alias {
-        name                   = aws_api_gateway_domain_name.api_gateway_domain_name.regional_domain_name
-        zone_id                = aws_api_gateway_domain_name.api_gateway_domain_name.regional_zone_id
-        evaluate_target_health = true
-    }
-}
+#resource "aws_route53_record" "myshop_dns_record" {
+#    zone_id = data.aws_route53_zone.my_zone.zone_id
+#    name    = lower(var.user_prefix)
+#    type    = "A"
+#
+#    alias {
+#        name                   = aws_api_gateway_domain_name.api_gateway_domain_name.regional_domain_name
+#        zone_id                = aws_api_gateway_domain_name.api_gateway_domain_name.regional_zone_id
+#        evaluate_target_health = true
+#    }
+#}
 
 #
 # API Gateway
@@ -124,21 +126,21 @@ resource "aws_route53_record" "myshop_dns_record" {
 #                                       function that is behind it. 
 #
 
-resource "aws_api_gateway_base_path_mapping" "map_shop_stage_name_to_api_gateway_domain" {
-  depends_on  = [aws_api_gateway_rest_api.api_gateway, aws_api_gateway_deployment.deployment, aws_api_gateway_domain_name.api_gateway_domain_name]
-  api_id      = aws_api_gateway_rest_api.api_gateway.id
-  stage_name  = aws_api_gateway_stage.stage.stage_name
-  domain_name = aws_api_gateway_domain_name.api_gateway_domain_name.domain_name
-}
+#resource "aws_api_gateway_base_path_mapping" "map_shop_stage_name_to_api_gateway_domain" {
+#  depends_on  = [aws_api_gateway_rest_api.api_gateway, aws_api_gateway_deployment.deployment, aws_api_gateway_domain_name.api_gateway_domain_name]
+#  api_id      = aws_api_gateway_rest_api.api_gateway.id
+#  stage_name  = aws_api_gateway_stage.stage.stage_name
+#  domain_name = aws_api_gateway_domain_name.api_gateway_domain_name.domain_name
+#}
 
-resource "aws_api_gateway_domain_name" "api_gateway_domain_name" {
-  domain_name              = "${lower(var.user_prefix)}.${var.domainname}"
-  regional_certificate_arn = aws_acm_certificate_validation.mycertificate_validation.certificate_arn
-  security_policy          = "TLS_1_2"
-  endpoint_configuration {
-    types = ["REGIONAL"]
-  }
-}
+#resource "aws_api_gateway_domain_name" "api_gateway_domain_name" {
+#  domain_name              = "${lower(var.user_prefix)}.${var.domainname}"
+#  regional_certificate_arn = aws_acm_certificate_validation.mycertificate_validation.certificate_arn
+#  security_policy          = "TLS_1_2"
+#  endpoint_configuration {
+#    types = ["REGIONAL"]
+#  }
+#}
 
 resource "aws_api_gateway_stage" "stage" {
   stage_name    = var.stage_name

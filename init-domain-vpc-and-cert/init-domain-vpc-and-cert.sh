@@ -1,6 +1,6 @@
-# init-cert.sh
-# ------------
-# Used to initialise the certificate
+# init-domain-vpc-and-cert.sh
+# ---------------------------
+# Used to initialise the local domain, the vpc and the certificate
 
 # WARNING: Be aware, that using init-cert.sh and destroy-cert.sh a lot, might lead into
 # errors in AWS: you are allowed to request 20 certificates per year. 
@@ -15,14 +15,14 @@ fi
 ../../terraform plan --var-file=../../terraform.tfvars --out terraform.tfplans
 if (test $? -ne 0)
 then
-    print "Plan of certificate failed"
+    print "Plan of domain, vpc and certificate failed"
     exit 1
 fi
 
 ../../terraform apply "terraform.tfplans"
 if (test $? -ne 0)
 then
-    print "Apply of certificate failed"
+    print "Apply of domain, vpc and certificate failed"
     exit 1
 fi
 
