@@ -86,11 +86,3 @@ fi
 ./create-terraform-cicd-tfvars.sh
 rm ./created-access-keys.txt
 
-# 
-# Add records to the DynamoDB database
-#
-
-python3 addDynamoDBRecords.py ${name_prefix} ${offset_number_of_users} ${number_of_users}
-
-
-
