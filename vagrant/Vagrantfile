@@ -33,9 +33,12 @@ Vagrant.configure(2) do |config|
   #   - zip/unzip   (for unzipping the terraform zip and to zip the lambda functions)
   #   - python3-pip (for pip: this is used to get the newest boto3 version)
   #   - awscli      (for the CLI of AWS, this is used to set the passwords for users, also used to check if the star certificate for your domain already exists - or not)
+  #   - ntp         (aws will not recognize the keys when the time on this VM is different to the time in AWS)
 
   yum update -y
-  yum install python3 git zip unzip python3-pip awscli -y
+  yum install python3 git zip unzip python3-pip awscli ntp -y
+  systemctl enable ntpd
+  systemctl start ntpd
 
   # Download and install terraform version 0.12.24
 
