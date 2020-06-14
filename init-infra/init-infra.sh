@@ -28,11 +28,22 @@ name_prefix=`grep name_prefix ../../terraform.tfvars | awk -F"\"" '{print $2}'`
 number_of_users=`grep number_of_users ../../terraform.tfvars | grep -v offset | awk -F"=" '{print $2}' | tr -d '[:space:]'`
 offset_number_of_users=`grep offset_number_of_users ../../terraform.tfvars | awk -F"=" '{print $2}' | tr -d '[:space:]'`
 last_number_of_users=$(( $offset_number_of_users + $number_of_users - 1 ))
+aws_region_name=`grep aws_region_name ../../terraform.tfvars | awk -F"\"" '{print $2}' | tr -d '[:space:]'`
 
 echo "name_prefix            = ${name_prefix}"
 echo "number_of_users        = ${number_of_users}"
 echo "offset_number_of_users = ${offset_number_of_users}"
 echo "last_number_of_users   = ${last_number_of_users}"
+echo "aws_region_name        = ${aws_region_name}"
+
+# Generate key pair
+if (! test -f ${name_prefix}-${aws_region_name}.pub)
+then
+  ssh-keygen -f ./${name_prefix}-${aws_region_name} -N ""
+fi
+
+pub_key=`cat AMIS-${aws_region_name}.pub`
+echo $pub_key
 
 # Use terraform to deploy the infrastructure
 
@@ -43,14 +54,14 @@ then
   exit 1
 fi
 
-../../terraform plan --var-file=../../terraform.tfvars --out terraform.tfplans
+../../terraform plan --var-file=../../terraform.tfvars --out terraform.tfplans -var "pub_key=${pub_key}"
 if (test $? -ne 0)
 then
   echo "Plan of infra failed"
   exit 1
 fi
 
-../../terraform apply "terraform.tfplans"
+../../terraform apply "terraform.tfplans" 
 if (test $? -ne 0)
 then
   echo "Apply of infra failed"
@@ -72,17 +83,23 @@ do
 
 done
 
+# OLD: idea was to create a new access key/secret access key for the user to play with. Now, we'll use EC2's, where the policies are attached to the EC2 instance.
+# So we don't need this anymore. I think ;-)
+#
+#
 # - Create a file with new access keys for the first user, 
 # - Create a terraform-cicd.tfvars file
 # - Don't leave access information in a file which might be checked in into github (if we miss it), destroy the file
 # 
-aws iam create-access-key --user-name "${name_prefix}${offset_number_of_users}" > ./created-access-keys.txt
-if (test $? -ne 0)
-then
-  echo "AWS CLI failed (IAM create-access-key)"
-  exit 1
-fi
+#aws iam create-access-key --user-name "${name_prefix}${offset_number_of_users}" > ./created-access-keys.txt
+#if (test $? -ne 0)
+#then
+#  echo "AWS CLI failed (IAM create-access-key)"
+#  exit 1
+#fi
+#
+#./create-terraform-cicd-tfvars.sh
+#rm ./created-access-keys.txt
+#
 
-./create-terraform-cicd-tfvars.sh
-rm ./created-access-keys.txt
 
