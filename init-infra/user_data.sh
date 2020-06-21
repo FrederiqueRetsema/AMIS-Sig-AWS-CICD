@@ -1,4 +1,3 @@
 #! /bin/bash
-sudo yum install git -y
-cd ~ec2-user
-git clone https://github.com/FrederiqueRetsema/AMIS-Blog-AWS
+yum install git python3 -y
+pip3 install git-remote-codecommit
