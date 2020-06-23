@@ -4,7 +4,8 @@
 
 # variable "aws_access_key"       {}
 # variable "aws_secret_key"       {}
-variable "aws_region"             { default = "us-east-1"}
+variable "aws_region"             { default = "eu-west-1"}
+variable "aws_region_abbr"        { default = "euw1"}
 
 variable "name_prefix"            { default = "AMIS" }
 variable "user_prefix"            { default = "AMIS1" }
@@ -26,11 +27,11 @@ provider "aws" {
 ##################################################################################
 
 data "aws_iam_role" "api_gateway_role" {
-    name = "${var.name_prefix}_api_gateway_role"
+    name = "${var.name_prefix}_${var.aws_region_abbr}_api_gateway_role"
 }
 
 data "aws_iam_role" "lambda_sig_role" {
-    name = "${var.name_prefix}_lambda_sig_role"
+    name = "${var.name_prefix}_${var.aws_region_abbr}_lambda_sig_role"
 }
 
 ##################################################################################

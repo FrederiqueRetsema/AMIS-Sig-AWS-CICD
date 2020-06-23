@@ -68,7 +68,7 @@ data "aws_vpc" "vpc" {
 # -----------
 
 resource "aws_iam_policy" "user_policy" {
-    name        = "${var.name_prefix}_${var.aws_region_abbr}_CICD_user_policy"
+    name        = "${var.name_prefix}_${var.aws_region_abbr}_user_policy"
     description = "Policy for CI CD workshop on 09-07-2020."
     policy      = <<EOF
 {
@@ -153,7 +153,7 @@ EOF
 # Lambda sig policy
 
 resource "aws_iam_policy" "lambda_sig_policy" {
-    name        = "${var.name_prefix}_${var.aws_region_abbr}_CICD_lambda_sig_policy"
+    name        = "${var.name_prefix}_${var.aws_region_abbr}_lambda_sig_policy"
     description = "Policy for CI CD workshop on 09-07-2020."
     policy      = <<EOF
 {
@@ -182,7 +182,7 @@ EOF
 # EC2 policy
 
 resource "aws_iam_policy" "ec2_policy" {
-    name        = "${var.name_prefix}_${var.aws_region_abbr}_CICD_EC2_policy"
+    name        = "${var.name_prefix}_${var.aws_region_abbr}_EC2_policy"
     description = "Policy for CI CD workshop on 09-07-2020."
     policy      = <<EOF
 {
@@ -190,17 +190,24 @@ resource "aws_iam_policy" "ec2_policy" {
     "Statement": [
       {
         "Action": [
-                      "codecommit:*"
-                  ],
-		"Effect": "Allow",
-		"Resource": "*",
-                "Condition": {
-                   "StringEquals": {
-                       "aws:RequestedRegion": "${var.aws_region_name}"
-                   }
-                }
-	}
-      ]
+            "codecommit:*"
+         ],
+	"Effect": "Allow",
+	"Resource": "*",
+        "Condition": {
+            "StringEquals": {
+                "aws:RequestedRegion": "${var.aws_region_name}"
+            }
+        }
+      },
+      {
+        "Action": [
+            "iam:GetRole"
+         ],
+	"Effect": "Allow",
+	"Resource": "*"
+      }
+    ]
 }
 EOF
 }
@@ -208,7 +215,7 @@ EOF
 # Lambda sig role
 
 resource "aws_iam_role" "lambda_sig_role" {
-    name                  = "${var.name_prefix}_${var.aws_region_abbr}_CICD_lambda_sig_role"
+    name                  = "${var.name_prefix}_${var.aws_region_abbr}_lambda_sig_role"
     description           =  "Policy for CI CD workshop on 09-07-2020."
     force_detach_policies = true
     assume_role_policy    =  <<EOF
@@ -234,7 +241,7 @@ resource "aws_iam_policy_attachment" "policy_to_sig_role" {
 }
 
 resource "aws_iam_role" "ec2_role" {
-    name                  = "${var.name_prefix}_${var.aws_region_abbr}_CICD_ec2_role"
+    name                  = "${var.name_prefix}_${var.aws_region_abbr}_ec2_role"
     description           =  "Policy for CI CD workshop on 09-07-2020."
     force_detach_policies = true
     assume_role_policy    =  <<EOF
@@ -306,11 +313,11 @@ resource "aws_iam_user" "user" {
 }
 
 resource "aws_iam_group" "user_group" {
-    name = "${var.name_prefix}-${var.aws_region_abbr}_Sig-CICD-group"
+    name = "${var.name_prefix}-${var.aws_region_abbr}_group"
 }
 
 resource "aws_iam_group_membership" "user_group_membership" {
-    name  = "${var.name_prefix}_${var.aws_region_abbr}_SIG-CICD-group_membership"
+    name  = "${var.name_prefix}_${var.aws_region_abbr}_group_membership"
     users = aws_iam_user.user[*].name
     group = aws_iam_group.user_group.name
 }
