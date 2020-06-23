@@ -205,10 +205,10 @@ resource "aws_iam_policy" "ec2_policy" {
 EOF
 }
 
-# Lambda accept role
+# Lambda sig role
 
-resource "aws_iam_role" "lambda_accept_role" {
-    name                  = "${var.name_prefix}_${var.aws_region_abbr}_CICD_lambda_accept_role"
+resource "aws_iam_role" "lambda_sig_role" {
+    name                  = "${var.name_prefix}_${var.aws_region_abbr}_CICD_lambda_sig_role"
     description           =  "Policy for CI CD workshop on 09-07-2020."
     force_detach_policies = true
     assume_role_policy    =  <<EOF
@@ -227,10 +227,10 @@ resource "aws_iam_role" "lambda_accept_role" {
 EOF
 } 
 
-resource "aws_iam_policy_attachment" "policy_to_accept_role" {
-   name       = "${var.name_prefix}_${var.aws_region_abbr}_policy_to_accept_role"
-   roles      = [aws_iam_role.lambda_accept_role.name]
-   policy_arn = aws_iam_policy.lambda_accept_policy.arn
+resource "aws_iam_policy_attachment" "policy_to_sig_role" {
+   name       = "${var.name_prefix}_${var.aws_region_abbr}_policy_to_sig_role"
+   roles      = [aws_iam_role.lambda_sig_role.name]
+   policy_arn = aws_iam_policy.lambda_sig_policy.arn
 }
 
 resource "aws_iam_role" "ec2_role" {
