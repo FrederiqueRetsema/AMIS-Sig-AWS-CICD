@@ -12,8 +12,6 @@ chmod 755 terraform
 mkdir start
 cd start
 curl https://frpublic.s3-eu-west-1.amazonaws.com/AMIS/sig/start/terraform_sig.tf --output terraform_sig.tf
-curl https://frpublic.s3-eu-west-1.amazonaws.com/AMIS/sig/start/init.sh --output init.sh
-chmod 755 init.sh
 mkdir lambdas
 cd lambdas
 curl https://frpublic.s3-eu-west-1.amazonaws.com/AMIS/sig/start/lambdas/sig.py --output sig.py

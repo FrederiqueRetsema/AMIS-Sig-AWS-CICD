@@ -89,7 +89,10 @@ resource "aws_iam_policy" "user_policy" {
         "Action": [
                   "acm:ListCertificates",
                   "acm:ListTagsForCertificate",
-                  "acm:DescribeCertificate"
+                  "acm:DescribeCertificate",
+                  "codecommit:*",
+                  "apigateway:*",
+                  "lambda:*"
 		],
 		"Effect": "Allow",
 		"Resource": "*",
@@ -129,25 +132,8 @@ resource "aws_iam_policy" "user_policy" {
 		],
 		"Effect": "Allow",
 		"Resource": "arn:aws:kms:${var.aws_region_name}:${var.account_number}:*"
-      },
-      {
-        "Action": [
-                  "kms:ListKeys",
-                  "kms:ListAliases",
-                  "apigateway:*",
-		  "lambda:*",
-		  "cloudwatch:describe*",
-		  "cloudwatch:get*"
-		],
-		"Effect": "Allow",
-		"Resource": "*",
-                "Condition": {
-                   "StringEquals": {
-                       "aws:RequestedRegion": "${var.aws_region_name}"
-                   }
-                }
-	  }
-	]
+      }
+   ]
 }
 EOF
 }
@@ -194,7 +180,8 @@ resource "aws_iam_policy" "ec2_policy" {
         "Action": [
             "codecommit:*",
             "apigateway:*",
-	    "lambda:*"
+	    "lambda:*",
+            "ec2:DescribeAccounts"
          ],
 	"Effect": "Allow",
 	"Resource": "*",
@@ -206,9 +193,8 @@ resource "aws_iam_policy" "ec2_policy" {
       },
       {
         "Action": [
-            "iam:GetRole",
-            "iam:GetPolicy",
-            "iam:GetRolePolicy"
+                "iam:PassRole",
+                "iam:GetRole"
          ],
 	"Effect": "Allow",
 	"Resource": "*"
@@ -218,9 +204,6 @@ resource "aws_iam_policy" "ec2_policy" {
 EOF
 }
 
-#            "iam:GetRole",
-#            "iam:ListRoles",
-#            "iam:GetRolePolicy"
 # Lambda sig role
 
 resource "aws_iam_role" "lambda_sig_role" {
