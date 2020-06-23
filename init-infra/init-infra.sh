@@ -29,12 +29,14 @@ number_of_users=`grep number_of_users ../../terraform.tfvars | grep -v offset | 
 offset_number_of_users=`grep offset_number_of_users ../../terraform.tfvars | awk -F"=" '{print $2}' | tr -d '[:space:]'`
 last_number_of_users=$(( $offset_number_of_users + $number_of_users - 1 ))
 aws_region_name=`grep aws_region_name ../../terraform.tfvars | awk -F"\"" '{print $2}' | tr -d '[:space:]'`
+account_number=`aws sts get-caller-identity| grep Account | awk -F"\"" '{print $4}'`
 
 echo "name_prefix            = ${name_prefix}"
 echo "number_of_users        = ${number_of_users}"
 echo "offset_number_of_users = ${offset_number_of_users}"
 echo "last_number_of_users   = ${last_number_of_users}"
 echo "aws_region_name        = ${aws_region_name}"
+echo "account_number         = ${account_number}"
 
 # Generate key pair
 if (! test -f ${name_prefix}-${aws_region_name}.pub)
@@ -78,9 +80,16 @@ do
   if (test $? -ne 0)
   then
     echo "AWS CLI failed (IAM create-logon-profile)"
-    exit 1
+    #exit 1
   fi
 
+done
+
+for i in $(seq ${offset_number_of_users} ${last_number_of_users})
+do
+    aws codecommit create-approval-rule-template --approval-rule-template-name "rule template ${name_prefix}${i}-repo" --approval-rule-template-description "Requires another AMIS user to approve the pull request" --approval-rule-template-content "{\"Version\": \"2018-11-08\", \"Statements\": [{\"Type\": \"Approvers\", \"NumberOfApprovalsNeeded\": 1,\"ApprovalPoolMembers\": [\"arn:aws:iam::${account_number}:user/${name_prefix}${i}\"]}]}"
+
+    aws codecommit associate-approval-rule-template-with-repository --approval-rule-template-name "rule template ${name_prefix}${i}-repo" --repository-name "${name_prefix}${i}-repo"
 done
 
 # OLD: idea was to create a new access key/secret access key for the user to play with. Now, we'll use EC2's, where the policies are attached to the EC2 instance.
