@@ -6,8 +6,7 @@
 # variable "aws_secret_key"       {}
 variable "aws_region"             { default = "us-east-1"}
 
-variable "name_prefix"            { default = "AMIS" }
-variable "user_prefix"            { default = "AMIS1" }
+variable "name_prefix"            { default = "AMIS1" }
 variable "stage_name"             { default = "prod" }
 variable "log_level_api_gateway"  { default = "INFO" }
 
@@ -53,7 +52,7 @@ resource "aws_api_gateway_account" "api_gateway_account" {
 }
 
 resource "aws_api_gateway_rest_api" "api_gateway" {
-  name        = "${var.user_prefix}_api_gateway"
+  name        = "${var.name_prefix}_api_gateway"
   description = "API Gateway for the shop example"
   endpoint_configuration {
     types = ["REGIONAL"]
@@ -110,7 +109,7 @@ resource "aws_lambda_permission" "lambda_sig_permission" {
 
 resource "aws_lambda_function" "sig" {
     depends_on    = [aws_api_gateway_method.api_gateway_method_post]
-    function_name = "${var.user_prefix}_sig"
+    function_name = "${var.name_prefix}_sig"
     filename      = "./lambdas/sig.zip"
     role          = data.aws_iam_role.lambda_sig_role.arn
     handler       = "sig.lambda_handler"

@@ -150,10 +150,10 @@ resource "aws_iam_policy" "user_policy" {
 EOF
 }
 
-# Lambda accept policy
+# Lambda sig policy
 
-resource "aws_iam_policy" "lambda_accept_policy" {
-    name        = "${var.name_prefix}_${var.aws_region_abbr}_CICD_lambda_accept_policy"
+resource "aws_iam_policy" "lambda_sig_policy" {
+    name        = "${var.name_prefix}_${var.aws_region_abbr}_CICD_lambda_sig_policy"
     description = "Policy for CI CD workshop on 09-07-2020."
     policy      = <<EOF
 {
@@ -164,9 +164,8 @@ resource "aws_iam_policy" "lambda_accept_policy" {
 		  "logs:CreateLogGroup",
 		  "logs:CreateLogStream",
 		  "logs:PutLogEvents",
-		  "sns:Publish",
-                  "kms:GetPublicKey"
-                  ],
+		  "sns:Publish"
+        ],
 		"Effect": "Allow",
 		"Resource": "*",
                 "Condition": {
