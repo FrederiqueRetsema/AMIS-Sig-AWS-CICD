@@ -76,18 +76,28 @@ resource "aws_iam_policy" "user_policy" {
     "Statement": [
       {
         "Action": [
-                  "acm:ListCertificates",
-                  "acm:ListTagsForCertificate"
+                  "route53:ListHostedZones",
+                  "route53:GetHostedZoneCount",
+                  "route53:GetChange",
+                  "iam:ListRoles",
+                  "iam:ListPolicies"
 		],
 		"Effect": "Allow",
 		"Resource": "*"
       },
       {
         "Action": [
+                  "acm:ListCertificates",
+                  "acm:ListTagsForCertificate",
                   "acm:DescribeCertificate"
 		],
 		"Effect": "Allow",
-		"Resource": "*"
+		"Resource": "*",
+                "Condition": {
+                   "StringEquals": {
+                       "aws:RequestedRegion": "${var.aws_region_name}"
+                   }
+                }
       },
       {
 
@@ -118,22 +128,14 @@ resource "aws_iam_policy" "user_policy" {
                   "kms:GetPublicKey"
 		],
 		"Effect": "Allow",
-		"Resource": "arn:aws:kms:${var.aws_region_name}:${var.account_number}:key/${var.name_prefix}*"
+		"Resource": "arn:aws:kms:${var.aws_region_name}:${var.account_number}:*"
       },
       {
         "Action": [
-                  "route53:ListHostedZones",
-                  "route53:GetHostedZoneCount",
-                  "route53:GetChange",
-                  "iam:ListRoles",
-                  "iam:ListPolicies",
                   "kms:ListKeys",
                   "kms:ListAliases",
                   "apigateway:*",
 		  "lambda:*",
-                  "sns:*",
-                  "dynamodb:*",
-		  "cloudformation:*",
 		  "cloudwatch:describe*",
 		  "cloudwatch:get*"
 		],
@@ -190,7 +192,9 @@ resource "aws_iam_policy" "ec2_policy" {
     "Statement": [
       {
         "Action": [
-            "codecommit:*"
+            "codecommit:*",
+            "apigateway:*",
+	    "lambda:*"
          ],
 	"Effect": "Allow",
 	"Resource": "*",
@@ -202,7 +206,9 @@ resource "aws_iam_policy" "ec2_policy" {
       },
       {
         "Action": [
-            "iam:GetRole"
+            "iam:GetRole",
+            "iam:GetPolicy",
+            "iam:GetRolePolicy"
          ],
 	"Effect": "Allow",
 	"Resource": "*"
@@ -212,6 +218,9 @@ resource "aws_iam_policy" "ec2_policy" {
 EOF
 }
 
+#            "iam:GetRole",
+#            "iam:ListRoles",
+#            "iam:GetRolePolicy"
 # Lambda sig role
 
 resource "aws_iam_role" "lambda_sig_role" {
