@@ -22,3 +22,4 @@ EOF
 chmod 755 run_as_ec2-user.sh
 sudo -u ec2-user ./run_as_ec2-user.sh
 rm -f run_as_ec2-user.sh
+
