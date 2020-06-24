@@ -36,7 +36,7 @@ Vagrant.configure(2) do |config|
   #   - ntp         (aws will not recognize the keys when the time on this VM is different to the time in AWS)
 
   yum update -y
-  yum install python3 git zip unzip python3-pip awscli ntp -y
+  yum install python3 git zip unzip python3-pip ntp -y
   systemctl enable ntpd
   systemctl start ntpd
 
@@ -45,6 +45,12 @@ Vagrant.configure(2) do |config|
   curl https://releases.hashicorp.com/terraform/0.12.24/terraform_0.12.24_linux_amd64.zip --output terraform.zip
   unzip terraform.zip
   rm terraform.zip
+
+  # Download the most recent AWK CLI
+  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  unzip awscliv2.zip
+  sudo ./aws/install
+  rm -f awscliv2.zip
 
   # Install boto3 and requests
   # - boto3    = AWS SDK for Python3
