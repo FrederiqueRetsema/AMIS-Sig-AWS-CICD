@@ -76,6 +76,13 @@ resource "aws_iam_policy" "user_policy" {
     "Statement": [
       {
         "Action": [
+                "s3:*"
+                ],
+                "Effect": "Allow",
+                "Resource": "arn:aws:s3:::${lower(var.name_prefix)}-sig-${lower(var.aws_region_abbr)}-bucket"
+      },
+      {
+        "Action": [
                   "route53:ListHostedZones",
                   "route53:GetHostedZoneCount",
                   "route53:GetChange",
@@ -92,7 +99,8 @@ resource "aws_iam_policy" "user_policy" {
                   "acm:DescribeCertificate",
                   "codecommit:*",
                   "apigateway:*",
-                  "lambda:*"
+                  "lambda:*",
+                  "dynamodb:*"
 		],
 		"Effect": "Allow",
 		"Resource": "*",
@@ -107,8 +115,7 @@ resource "aws_iam_policy" "user_policy" {
         "Action": [
                   "route53:ListResourceRecordSets",
                   "route53:ListTagsForResource",
-                  "route53:GetHostedZone",
-                  "route53:ChangeResourceRecordSets"
+                  "route53:GetHostedZone"
                 ],
 		"Effect": "Allow",
 	        "Resource": "arn:aws:route53:::hostedzone/${data.aws_route53_zone.zone.zone_id}"
@@ -178,10 +185,52 @@ resource "aws_iam_policy" "ec2_policy" {
     "Statement": [
       {
         "Action": [
+           "s3:*"
+        ],
+        "Effect": "Allow",
+        "Resource": "*"
+      },
+      {
+        "Action": [
+           "s3:*"
+        ],
+        "Effect": "Deny",
+        "Resource": "arn:aws:s3:::frpublic"
+      },
+      {
+        "Action": [
+           "s3:*"
+        ],
+        "Effect": "Deny",
+        "Resource": "arn:aws:s3:::tsofra-laptop"
+      },
+      {
+        "Action": [
+           "s3:*"
+        ],
+        "Effect": "Deny",
+        "Resource": "arn:aws:s3:::aws-bills-tsofra"
+      },
+      {
+        "Action": [
+           "route53:GetHostedZone",
+           "route53:ListTagsForResource",
+           "route53:ChangeResourceRecordSets",
+           "route53:ListResourceRecordSets"
+        ],
+        "Effect": "Allow",
+	"Resource": "arn:aws:route53:::hostedzone/${data.aws_route53_zone.zone.zone_id}"
+      },
+      {
+        "Action": [
             "codecommit:*",
             "apigateway:*",
 	    "lambda:*",
-            "ec2:DescribeAccounts"
+            "dynamodb:*",
+            "ec2:DescribeAccounts",
+            "acm:ListCertificates",
+            "acm:DescribeCertificate",
+            "acm:ListTagsForCertificate"
          ],
 	"Effect": "Allow",
 	"Resource": "*",
@@ -194,7 +243,9 @@ resource "aws_iam_policy" "ec2_policy" {
       {
         "Action": [
                 "iam:PassRole",
-                "iam:GetRole"
+                "iam:GetRole",
+                "route53:ListHostedZones",
+                "route53:GetChange"
          ],
 	"Effect": "Allow",
 	"Resource": "*"
@@ -378,6 +429,33 @@ resource "aws_instance" "ec2" {
 
 }
 
+resource "aws_dynamodb_table" "state_locking_table" {
+    count          = var.number_of_users
+    name           = "${var.name_prefix}${count.index + var.offset_number_of_users}_state_locking"
+    billing_mode   = "PROVISIONED"
+    read_capacity  = 1
+    write_capacity = 1
+    hash_key       = "LockID"
+
+    attribute {
+        name = "LockID"
+        type = "S"
+    }
+}
+
+resource "aws_s3_bucket" "sig-bucket" {
+    bucket = "${lower(var.name_prefix)}-sig-${lower(var.aws_region_abbr)}-bucket"
+    acl    = "private"
+}
+
+resource "aws_s3_access_point" "sig-bucket-access-point" {
+    bucket = aws_s3_bucket.sig-bucket.id
+    name   = "sig-bucket-access-point"
+
+    vpc_configuration {
+        vpc_id = data.aws_vpc.vpc.id
+    }
+}
 
 
 ##################################################################################
