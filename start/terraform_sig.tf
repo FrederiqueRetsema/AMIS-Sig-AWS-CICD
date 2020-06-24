@@ -2,15 +2,17 @@
 # VARIABLES
 ##################################################################################
 
-# variable "aws_access_key"       {}
-# variable "aws_secret_key"       {}
-variable "aws_region"             { default = "eu-west-1"}
-variable "aws_region_abbr"        { default = "euw1"}
+# variable "aws_access_key"          {}
+# variable "aws_secret_key"          {}
+variable "aws_region"                { default = "eu-west-1"}
+variable "aws_region_abbr"           { default = "euw1"}
 
-variable "name_prefix"            { default = "AMIS" }
-variable "user_prefix"            { default = "AMIS1" }
-variable "stage_name"             { default = "prod" }
-variable "log_level_api_gateway"  { default = "INFO" }
+variable "name_prefix"               { default = "AMIS" }
+variable "user_prefix"               { default = "AMIS1" }
+
+variable "stage_name"                { default = "prod" }
+variable "log_level_api_gateway"     { default = "INFO" }
+variable "domainname"                { default = "cloudhotel.org" }
 
 ##################################################################################
 # PROVIDERS
@@ -20,6 +22,16 @@ provider "aws" {
 # access_key = var.aws_access_key
 # secret_key = var.aws_secret_key
   region     = var.aws_region
+}
+
+terraform {
+    backend "s3" {
+        encrypt        = true
+        bucket         = "amis-sig-euw1-bucket"
+        key            = "terraform/AMIS1/terraform.tfstate"
+        dynamodb_table = "AMIS1_state_locking"
+        region         = "eu-west-1"
+    }
 }
 
 ##################################################################################
@@ -34,9 +46,53 @@ data "aws_iam_role" "lambda_sig_role" {
     name = "${var.name_prefix}_${var.aws_region_abbr}_lambda_sig_role"
 }
 
+data "aws_route53_zone" "my_zone" {
+    name  = var.domainname
+}
+
+data "aws_acm_certificate" "domain_certificate" {
+    domain = "*.${var.domainname}"
+}
+
 ##################################################################################
 # OTHER RESOURCES
 ##################################################################################
+
+resource "aws_acm_certificate_validation" "mycertificate_validation" {
+    certificate_arn = data.aws_acm_certificate.domain_certificate.arn
+}
+
+resource "aws_route53_record" "myshop_dns_record" {
+    zone_id = data.aws_route53_zone.my_zone.zone_id
+    name    = lower(var.name_prefix)
+    type    = "A"
+
+    alias {
+        name                   = aws_api_gateway_domain_name.api_gateway_domain_name.regional_domain_name
+        zone_id                = aws_api_gateway_domain_name.api_gateway_domain_name.regional_zone_id
+        evaluate_target_health = true
+    }
+}
+
+# API Gateway
+# -----------
+# See for more information the blogs in AMIS-Blog-AWS/shop-1
+
+resource "aws_api_gateway_base_path_mapping" "map_shop_stage_name_to_api_gateway_domain" {
+  depends_on  = [aws_api_gateway_rest_api.api_gateway, aws_api_gateway_deployment.deployment, aws_api_gateway_domain_name.api_gateway_domain_name]
+  api_id      = aws_api_gateway_rest_api.api_gateway.id
+  stage_name  = aws_api_gateway_stage.stage.stage_name
+  domain_name = aws_api_gateway_domain_name.api_gateway_domain_name.domain_name
+}
+
+resource "aws_api_gateway_domain_name" "api_gateway_domain_name" {
+  domain_name              = "${lower(var.name_prefix)}.${var.domainname}"
+  regional_certificate_arn = aws_acm_certificate_validation.mycertificate_validation.certificate_arn
+  security_policy          = "TLS_1_2"
+  endpoint_configuration {
+    types = ["REGIONAL"]
+  }
+}
 
 resource "aws_api_gateway_stage" "stage" {
   stage_name    = var.stage_name
