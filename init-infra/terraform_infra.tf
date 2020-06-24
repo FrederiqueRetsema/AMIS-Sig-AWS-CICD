@@ -68,7 +68,7 @@ data "aws_vpc" "vpc" {
 # -----------
 
 resource "aws_iam_policy" "user_policy" {
-    name        = "${var.name_prefix}_${var.aws_region_abbr}_CICD_user_policy"
+    name        = "${var.name_prefix}_${var.aws_region_abbr}_user_policy"
     description = "Policy for CI CD workshop on 09-07-2020."
     policy      = <<EOF
 {
@@ -76,18 +76,31 @@ resource "aws_iam_policy" "user_policy" {
     "Statement": [
       {
         "Action": [
-                  "acm:ListCertificates",
-                  "acm:ListTagsForCertificate"
+                  "route53:ListHostedZones",
+                  "route53:GetHostedZoneCount",
+                  "route53:GetChange",
+                  "iam:ListRoles",
+                  "iam:ListPolicies"
 		],
 		"Effect": "Allow",
 		"Resource": "*"
       },
       {
         "Action": [
-                  "acm:DescribeCertificate"
+                  "acm:ListCertificates",
+                  "acm:ListTagsForCertificate",
+                  "acm:DescribeCertificate",
+                  "codecommit:*",
+                  "apigateway:*",
+                  "lambda:*"
 		],
 		"Effect": "Allow",
-		"Resource": "*"
+		"Resource": "*",
+                "Condition": {
+                   "StringEquals": {
+                       "aws:RequestedRegion": "${var.aws_region_name}"
+                   }
+                }
       },
       {
 
@@ -118,34 +131,9 @@ resource "aws_iam_policy" "user_policy" {
                   "kms:GetPublicKey"
 		],
 		"Effect": "Allow",
-		"Resource": "arn:aws:kms:${var.aws_region_name}:${var.account_number}:key/${var.name_prefix}*"
-      },
-      {
-        "Action": [
-                  "route53:ListHostedZones",
-                  "route53:GetHostedZoneCount",
-                  "route53:GetChange",
-                  "iam:ListRoles",
-                  "iam:ListPolicies",
-                  "kms:ListKeys",
-                  "kms:ListAliases",
-                  "apigateway:*",
-		  "lambda:*",
-                  "sns:*",
-                  "dynamodb:*",
-		  "cloudformation:*",
-		  "cloudwatch:describe*",
-		  "cloudwatch:get*"
-		],
-		"Effect": "Allow",
-		"Resource": "*",
-                "Condition": {
-                   "StringEquals": {
-                       "aws:RequestedRegion": "${var.aws_region_name}"
-                   }
-                }
-	  }
-	]
+		"Resource": "arn:aws:kms:${var.aws_region_name}:${var.account_number}:*"
+      }
+   ]
 }
 EOF
 }
@@ -153,7 +141,7 @@ EOF
 # Lambda sig policy
 
 resource "aws_iam_policy" "lambda_sig_policy" {
-    name        = "${var.name_prefix}_${var.aws_region_abbr}_CICD_lambda_sig_policy"
+    name        = "${var.name_prefix}_${var.aws_region_abbr}_lambda_sig_policy"
     description = "Policy for CI CD workshop on 09-07-2020."
     policy      = <<EOF
 {
@@ -182,7 +170,7 @@ EOF
 # EC2 policy
 
 resource "aws_iam_policy" "ec2_policy" {
-    name        = "${var.name_prefix}_${var.aws_region_abbr}_CICD_EC2_policy"
+    name        = "${var.name_prefix}_${var.aws_region_abbr}_EC2_policy"
     description = "Policy for CI CD workshop on 09-07-2020."
     policy      = <<EOF
 {
@@ -190,25 +178,36 @@ resource "aws_iam_policy" "ec2_policy" {
     "Statement": [
       {
         "Action": [
-                      "codecommit:*"
-                  ],
-		"Effect": "Allow",
-		"Resource": "*",
-                "Condition": {
-                   "StringEquals": {
-                       "aws:RequestedRegion": "${var.aws_region_name}"
-                   }
-                }
-	}
-      ]
+            "codecommit:*",
+            "apigateway:*",
+	    "lambda:*",
+            "ec2:DescribeAccounts"
+         ],
+	"Effect": "Allow",
+	"Resource": "*",
+        "Condition": {
+            "StringEquals": {
+                "aws:RequestedRegion": "${var.aws_region_name}"
+            }
+        }
+      },
+      {
+        "Action": [
+                "iam:PassRole",
+                "iam:GetRole"
+         ],
+	"Effect": "Allow",
+	"Resource": "*"
+      }
+    ]
 }
 EOF
 }
 
-# Lambda accept role
+# Lambda sig role
 
-resource "aws_iam_role" "lambda_accept_role" {
-    name                  = "${var.name_prefix}_${var.aws_region_abbr}_CICD_lambda_accept_role"
+resource "aws_iam_role" "lambda_sig_role" {
+    name                  = "${var.name_prefix}_${var.aws_region_abbr}_lambda_sig_role"
     description           =  "Policy for CI CD workshop on 09-07-2020."
     force_detach_policies = true
     assume_role_policy    =  <<EOF
@@ -227,14 +226,14 @@ resource "aws_iam_role" "lambda_accept_role" {
 EOF
 } 
 
-resource "aws_iam_policy_attachment" "policy_to_accept_role" {
-   name       = "${var.name_prefix}_${var.aws_region_abbr}_policy_to_accept_role"
-   roles      = [aws_iam_role.lambda_accept_role.name]
-   policy_arn = aws_iam_policy.lambda_accept_policy.arn
+resource "aws_iam_policy_attachment" "policy_to_sig_role" {
+   name       = "${var.name_prefix}_${var.aws_region_abbr}_policy_to_sig_role"
+   roles      = [aws_iam_role.lambda_sig_role.name]
+   policy_arn = aws_iam_policy.lambda_sig_policy.arn
 }
 
 resource "aws_iam_role" "ec2_role" {
-    name                  = "${var.name_prefix}_${var.aws_region_abbr}_CICD_ec2_role"
+    name                  = "${var.name_prefix}_${var.aws_region_abbr}_ec2_role"
     description           =  "Policy for CI CD workshop on 09-07-2020."
     force_detach_policies = true
     assume_role_policy    =  <<EOF
@@ -306,11 +305,11 @@ resource "aws_iam_user" "user" {
 }
 
 resource "aws_iam_group" "user_group" {
-    name = "${var.name_prefix}-${var.aws_region_abbr}_Sig-CICD-group"
+    name = "${var.name_prefix}-${var.aws_region_abbr}_group"
 }
 
 resource "aws_iam_group_membership" "user_group_membership" {
-    name  = "${var.name_prefix}_${var.aws_region_abbr}_SIG-CICD-group_membership"
+    name  = "${var.name_prefix}_${var.aws_region_abbr}_group_membership"
     users = aws_iam_user.user[*].name
     group = aws_iam_group.user_group.name
 }

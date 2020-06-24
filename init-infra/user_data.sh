@@ -9,12 +9,9 @@ curl https://releases.hashicorp.com/terraform/0.12.26/terraform_0.12.26_linux_am
 unzip terraform.zip
 rm -f terraform.zip
 chmod 755 terraform
-curl https://frpublic.s3-eu-west-1.amazonaws.com/AMIS/sig/la_init.tf --output la_init.tf
 mkdir start
 cd start
 curl https://frpublic.s3-eu-west-1.amazonaws.com/AMIS/sig/start/terraform_sig.tf --output terraform_sig.tf
-curl https://frpublic.s3-eu-west-1.amazonaws.com/AMIS/sig/start/init.sh --output init.sh
-chmod 755 init.sh
 mkdir lambdas
 cd lambdas
 curl https://frpublic.s3-eu-west-1.amazonaws.com/AMIS/sig/start/lambdas/sig.py --output sig.py
