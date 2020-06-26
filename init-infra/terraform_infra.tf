@@ -105,9 +105,10 @@ resource "aws_iam_policy" "user_policy" {
                   "ec2:StartInstanceStatus",
                   "ec2:Stop",
                   "codecommit:*",
-                  "codeartifacts:*",
+                  "codeartifact:*",
                   "codebuild:*",
                   "codedeploy:*",
+                  "codepipeline:*",
                   "apigateway:*",
                   "lambda:*",
                   "dynamodb:*",
@@ -119,7 +120,20 @@ resource "aws_iam_policy" "user_policy" {
                   "wafv2:ListWebACLs",
                   "wafv2:AssociateWebACL",
                   "waf-regional:ListWebACLs",
-                  "waf-regional:AssociateWebACL"
+                  "waf-regional:AssociateWebACL",
+                  "events:DeleteRule",
+                  "events:DescribeRule",
+                  "events:DisableRule",
+                  "events:EnableRule",
+                  "events:ListRules",
+                  "events:ListTargetsByRule",
+                  "events:ListRuleNamesByTarget",
+                  "events:PutRule",
+                  "events:PutTargets",
+                  "events:RemoveTargets",
+		  "logs:CreateLogGroup",
+		  "logs:CreateLogStream",
+		  "logs:PutLogEvents"
 		],
 		"Effect": "Allow",
 		"Resource": "*",
@@ -129,6 +143,43 @@ resource "aws_iam_policy" "user_policy" {
                    }
                 }
       },
+      {
+            "Effect": "Allow",
+            "Action": [
+                "ssm:PutParameter"
+            ],
+            "Resource": "arn:aws:ssm:*:*:parameter/CodeBuild/*"
+      },
+      {
+            "Sid": "CodeStarNotificationsReadWriteAccess",
+            "Effect": "Allow",
+            "Action": [
+                "codestar-notifications:CreateNotificationRule",
+                "codestar-notifications:DescribeNotificationRule",
+                "codestar-notifications:UpdateNotificationRule",
+                "codestar-notifications:DeleteNotificationRule",
+                "codestar-notifications:Subscribe",
+                "codestar-notifications:Unsubscribe"
+            ],
+            "Resource": "*",
+            "Condition": {
+                "StringLike": {
+                    "codestar-notifications:NotificationsForResource": "arn:aws:codebuild:*"
+                }
+            }
+      },
+      {
+            "Sid": "CodeStarNotificationsListAccess",
+            "Effect": "Allow",
+            "Action": [
+                "codestar-notifications:ListNotificationRules",
+                "codestar-notifications:ListEventTypes",
+                "codestar-notifications:ListTargets",
+                "codestar-notifications:ListTagsforResource"
+            ],
+            "Resource": "*"
+      },
+
       {
 
         "Action": [
@@ -280,6 +331,174 @@ resource "aws_iam_policy" "codebuild_and_ec2_policy" {
 EOF
 }
 
+resource "aws_iam_policy" "codepipeline_policy" {
+    name        = "${var.name_prefix}_${var.aws_region_abbr}_codepipeline_policy"
+    description = "Policy for CI CD workshop on 09-07-2020."
+    policy      = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": [
+                "iam:PassRole"
+            ],
+            "Effect": "Allow",
+            "Resource": "*",
+            "Condition": {
+                "StringEqualsIfExists": {
+                    "iam:PassedToService": [
+                        "cloudformation.amazonaws.com",
+                        "elasticbeanstalk.amazonaws.com",
+                        "ec2.amazonaws.com",
+                        "ecs-tasks.amazonaws.com"
+                    ]
+                },
+                "StringEquals": {
+                    "aws:RequestedRegion": "${var.aws_region_name}"
+                }
+            }
+        },
+        {
+            "Action": [
+                "codecommit:*",
+                "codestar-connections:UseConnection"
+            ],
+            "Effect": "Allow",
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "aws:RequestedRegion": "${var.aws_region_name}"
+                }
+            }
+        },
+        {
+            "Action": [
+                "elasticbeanstalk:*",
+                "ec2:*",
+                "elasticloadbalancing:*",
+                "autoscaling:*",
+                "cloudwatch:*",
+                "s3:*",
+                "sns:*",
+                "cloudformation:*",
+                "rds:*",
+                "sqs:*",
+                "ecs:*"
+            ],
+            "Effect": "Allow",
+            "Resource": "*"
+        },
+        {
+            "Action": [
+                "lambda:InvokeFunction",
+                "lambda:ListFunctions"
+            ],
+            "Resource": "*",
+            "Effect": "Allow",
+            "Condition": {
+                "StringEquals": {
+                    "aws:RequestedRegion": "${var.aws_region_name}"
+                }
+            }
+        },
+        {
+            "Action": [
+                "opsworks:CreateDeployment",
+                "opsworks:DescribeApps",
+                "opsworks:DescribeCommands",
+                "opsworks:DescribeDeployments",
+                "opsworks:DescribeInstances",
+                "opsworks:DescribeStacks",
+                "opsworks:UpdateApp",
+                "opsworks:UpdateStack"
+            ],
+            "Effect": "Allow",
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "aws:RequestedRegion": "${var.aws_region_name}"
+                }
+            }
+        },
+        {
+            "Action": [
+                "cloudformation:CreateStack",
+                "cloudformation:DeleteStack",
+                "cloudformation:DescribeStacks",
+                "cloudformation:UpdateStack",
+                "cloudformation:CreateChangeSet",
+                "cloudformation:DeleteChangeSet",
+                "cloudformation:DescribeChangeSet",
+                "cloudformation:ExecuteChangeSet",
+                "cloudformation:SetStackPolicy",
+                "cloudformation:ValidateTemplate"
+            ],
+            "Effect": "Allow",
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "aws:RequestedRegion": "${var.aws_region_name}"
+                }
+            }
+        },
+        {
+            "Action": [
+                "codebuild:BatchGetBuilds",
+                "codebuild:StartBuild"
+            ],
+            "Effect": "Allow",
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "aws:RequestedRegion": "${var.aws_region_name}"
+                }
+            }
+        },
+        {
+            "Action": [
+                "ecr:DescribeImages"
+            ],
+            "Effect": "Allow",
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "aws:RequestedRegion": "${var.aws_region_name}"
+                }
+            }
+        },
+        {
+            "Action": [
+                "states:DescribeExecution",
+                "states:DescribeStateMachine",
+                "states:StartExecution"
+            ],
+            "Effect": "Allow",
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "aws:RequestedRegion": "${var.aws_region_name}"
+                }
+            }
+        },
+        {
+            "Action": [
+                "appconfig:StartDeployment",
+                "appconfig:StopDeployment",
+                "appconfig:GetDeployment"
+            ],
+            "Effect": "Allow",
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "aws:RequestedRegion": "${var.aws_region_name}"
+                }
+            }
+        }
+    ]
+}
+EOF
+}
+
 # Lambda sig role
 
 resource "aws_iam_role" "lambda_sig_role" {
@@ -363,6 +582,32 @@ resource "aws_iam_policy_attachment" "policy_attachment_codebuild_role" {
    name       = "${var.name_prefix}_${var.aws_region_abbr}_policy_to_codebuild_role"
    roles      = [aws_iam_role.codebuild_role.name]
    policy_arn = aws_iam_policy.codebuild_and_ec2_policy.arn
+}
+
+resource "aws_iam_role" "codepipeline_role" {
+    name                  = "${var.name_prefix}_${var.aws_region_abbr}_codepipeline_role"
+    description           =  "Policy for CI CD workshop on 09-07-2020."
+    force_detach_policies = true
+    assume_role_policy    =  <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "codepipeline.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+        }
+    ]
+}
+EOF
+} 
+
+resource "aws_iam_policy_attachment" "policy_attachment_codepipeline_role" {
+   name       = "${var.name_prefix}_${var.aws_region_abbr}_policy_to_codepipeline_role"
+   roles      = [aws_iam_role.codepipeline_role.name]
+   policy_arn = aws_iam_policy.codepipeline_policy.arn
 }
 
 # AmazonAPIGatewayPushToCloudWatchLogs
