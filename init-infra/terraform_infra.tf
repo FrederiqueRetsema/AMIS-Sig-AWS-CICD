@@ -100,7 +100,10 @@ resource "aws_iam_policy" "user_policy" {
                   "codecommit:*",
                   "apigateway:*",
                   "lambda:*",
-                  "dynamodb:*"
+                  "dynamodb:*",
+                  "codeguru-reviewer:ListCodeReviews",
+                  "codestar-notifications:ListNotificationRules",
+                  "codeguru-reviewer:ListRepositoryAssociations"
 		],
 		"Effect": "Allow",
 		"Resource": "*",
