@@ -102,8 +102,23 @@ resource "aws_iam_policy" "user_policy" {
                   "ec2:DescribeInstances",
                   "ec2:DescribeInstanceStatus",
                   "ec2:DescribeIamInstanceProfileAssociations",
+                  "ec2:DescribeVpcs",
+                  "ec2:DescribeSecurityGroups",
+                  "ec2:DescribeSubnets",
                   "ec2:StartInstanceStatus",
                   "ec2:Stop",
+                  "ecr:DescribeRepositories",
+                  "ecr:ListImages",
+                  "events:DeleteRule",
+                  "events:DescribeRule",
+                  "events:DisableRule",
+                  "events:EnableRule",
+                  "events:ListTargetsByRule",
+                  "events:ListRules",
+                  "events:ListRuleNamesByTarget",
+                  "events:PutRule",
+                  "events:PutTargets",
+                  "events:RemoveTargets",
                   "codecommit:*",
                   "codeartifact:*",
                   "codebuild:*",
@@ -112,6 +127,7 @@ resource "aws_iam_policy" "user_policy" {
                   "apigateway:*",
                   "lambda:*",
                   "dynamodb:*",
+                  "cloudwatch:GetMetricStatistics",
                   "codeguru-reviewer:ListCodeReviews",
                   "codestar-notifications:ListNotificationRules",
                   "codeguru-reviewer:ListRepositoryAssociations",
@@ -121,17 +137,8 @@ resource "aws_iam_policy" "user_policy" {
                   "wafv2:AssociateWebACL",
                   "waf-regional:ListWebACLs",
                   "waf-regional:AssociateWebACL",
-                  "events:DeleteRule",
-                  "events:DescribeRule",
-                  "events:DisableRule",
-                  "events:EnableRule",
-                  "events:ListRules",
-                  "events:ListTargetsByRule",
-                  "events:ListRuleNamesByTarget",
-                  "events:PutRule",
-                  "events:PutTargets",
-                  "events:RemoveTargets",
 		  "logs:CreateLogGroup",
+		  "logs:DeleteLogGroup",
 		  "logs:CreateLogStream",
 		  "logs:PutLogEvents"
 		],
@@ -144,6 +151,23 @@ resource "aws_iam_policy" "user_policy" {
                 }
       },
       {
+       "Action": [
+                   "iam:CreateRole",
+                   "iam:AttachRolePolicy"
+                 ],
+                 "Effect": "Allow",
+                 "Resource": "arn:aws:iam::${var.account_number}:role/service-role/cwe-role-${var.aws_region_name}-*"
+      },
+      {
+       "Action": [
+                   "iam:CreatePolicy",
+                   "iam:CreatePolicyVersion",
+                   "iam:DeletePolicyVersion"
+                 ],
+                 "Effect": "Allow",
+                 "Resource": "*"
+      },
+      {
             "Effect": "Allow",
             "Action": [
                 "ssm:PutParameter"
@@ -151,7 +175,6 @@ resource "aws_iam_policy" "user_policy" {
             "Resource": "arn:aws:ssm:*:*:parameter/CodeBuild/*"
       },
       {
-            "Sid": "CodeStarNotificationsReadWriteAccess",
             "Effect": "Allow",
             "Action": [
                 "codestar-notifications:CreateNotificationRule",
@@ -169,7 +192,6 @@ resource "aws_iam_policy" "user_policy" {
             }
       },
       {
-            "Sid": "CodeStarNotificationsListAccess",
             "Effect": "Allow",
             "Action": [
                 "codestar-notifications:ListNotificationRules",
@@ -179,7 +201,6 @@ resource "aws_iam_policy" "user_policy" {
             ],
             "Resource": "*"
       },
-
       {
 
         "Action": [
@@ -196,12 +217,47 @@ resource "aws_iam_policy" "user_policy" {
                   "iam:ListAttachedRolePolicies",
                   "iam:GetRole",
                   "iam:GetPolicy",
-                  "iam:GetPolicyVersion",
-                  "iam:PassRole"
+                  "iam:GetPolicyVersion"
 		],
 		"Effect": "Allow",
 		"Resource": ["arn:aws:iam::${var.account_number}:role/${var.name_prefix}*",
-                             "arn:aws:iam::${var.account_number}:policy/${var.name_prefix}*"]
+                             "arn:aws:iam::${var.account_number}:policy/${var.name_prefix}*",
+                             "arn:aws:iam::${var.account_number}:role/service-role/cwe-role-${var.aws_region_name}-*"]
+      },
+      {
+         "Action": [
+                   "iam:PassRole"
+                   ],
+         "Effect": "Allow",
+         "Resource": [ "arn:aws:iam::*:role/AMIS_euw1_codebuild_role"]
+      },
+      {
+         "Action": [
+                   "iam:PassRole"
+                   ],
+         "Effect": "Allow",
+         "Resource": [ "arn:aws:iam::*:role/service-role/cwe-role-*"],
+         "Condition": {
+            "StringEquals": {
+               "iam:PassedToService": [
+                 "events.amazonaws.com"
+               ]
+             }
+         }
+      },
+      {
+        "Action": [
+                "iam:PassRole"
+            ],
+            "Effect": "Allow",
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "iam:PassedToService": [
+                        "codepipeline.amazonaws.com"
+                    ]
+                }
+            }
       },
       {
         "Action": [
@@ -493,6 +549,19 @@ resource "aws_iam_policy" "codepipeline_policy" {
                     "aws:RequestedRegion": "${var.aws_region_name}"
                 }
             }
+        },
+        {
+            "Action": [
+                "iam:PassRole"
+            ],
+            "Effect": "Allow",
+            "Resource": "arn:aws:iam::*:role/service-role/cwe-role-*",
+            "Condition": {
+                "StringEquals": {
+                    "iam:PassedToService": "events.amazonaws.com"
+                }
+            }
+           
         }
     ]
 }
