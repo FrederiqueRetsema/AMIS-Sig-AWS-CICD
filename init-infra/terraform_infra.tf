@@ -83,6 +83,15 @@ resource "aws_iam_policy" "user_policy" {
       },
       {
         "Action": [
+           "s3:*"
+        ],
+        "Effect": "Deny",
+        "Resource": ["arn:aws:s3:::frpublic",
+                     "arn:aws:s3:::tsofra-laptop",
+                     "arn:aws:s3:::aws-bills-tsofra"]
+      },
+      {
+        "Action": [
                   "route53:ListHostedZones",
                   "route53:GetHostedZoneCount",
                   "route53:GetChange",
@@ -165,7 +174,12 @@ resource "aws_iam_policy" "user_policy" {
                    "iam:DeletePolicyVersion"
                  ],
                  "Effect": "Allow",
-                 "Resource": "*"
+                 "Resource": "*",
+                 "Condition": {
+                    "ArnNotLike": {
+                        "aws:SourceArn": "arn:aws:iam::${var.account_number}:policy/${var.name_prefix}*"
+                 }
+            }
       },
       {
             "Effect": "Allow",
@@ -321,21 +335,9 @@ resource "aws_iam_policy" "codebuild_and_ec2_policy" {
            "s3:*"
         ],
         "Effect": "Deny",
-        "Resource": "arn:aws:s3:::frpublic"
-      },
-      {
-        "Action": [
-           "s3:*"
-        ],
-        "Effect": "Deny",
-        "Resource": "arn:aws:s3:::tsofra-laptop"
-      },
-      {
-        "Action": [
-           "s3:*"
-        ],
-        "Effect": "Deny",
-        "Resource": "arn:aws:s3:::aws-bills-tsofra"
+        "Resource": ["arn:aws:s3:::frpublic",
+                     "arn:aws:s3:::tsofra-laptop",
+                     "arn:aws:s3:::aws-bills-tsofra"]
       },
       {
         "Action": [
