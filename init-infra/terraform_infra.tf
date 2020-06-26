@@ -1,4 +1,4 @@
-#me#################################################################################
+##################################################################################
 # VARIABLES
 ##################################################################################
 
@@ -87,7 +87,8 @@ resource "aws_iam_policy" "user_policy" {
                   "route53:GetHostedZoneCount",
                   "route53:GetChange",
                   "iam:ListRoles",
-                  "iam:ListPolicies"
+                  "iam:ListPolicies",
+                  "iam:ListInstanceProfiles"
 		],
 		"Effect": "Allow",
 		"Resource": "*"
@@ -97,13 +98,28 @@ resource "aws_iam_policy" "user_policy" {
                   "acm:ListCertificates",
                   "acm:ListTagsForCertificate",
                   "acm:DescribeCertificate",
+                  "ec2:ListInstanceProfiles",
+                  "ec2:DescribeInstances",
+                  "ec2:DescribeInstanceStatus",
+                  "ec2:DescribeIamInstanceProfileAssociations",
+                  "ec2:StartInstanceStatus",
+                  "ec2:Stop",
                   "codecommit:*",
+                  "codeartifacts:*",
+                  "codebuild:*",
+                  "codedeploy:*",
                   "apigateway:*",
                   "lambda:*",
                   "dynamodb:*",
                   "codeguru-reviewer:ListCodeReviews",
                   "codestar-notifications:ListNotificationRules",
-                  "codeguru-reviewer:ListRepositoryAssociations"
+                  "codeguru-reviewer:ListRepositoryAssociations",
+                  "waf:ListWebACLs",
+                  "waf:AssociateWebACL",
+                  "wafv2:ListWebACLs",
+                  "wafv2:AssociateWebACL",
+                  "waf-regional:ListWebACLs",
+                  "waf-regional:AssociateWebACL"
 		],
 		"Effect": "Allow",
 		"Resource": "*",
@@ -227,6 +243,7 @@ resource "aws_iam_policy" "codebuild_and_ec2_policy" {
       {
         "Action": [
             "codecommit:*",
+            "codebuild:*",
             "apigateway:*",
 	    "lambda:*",
             "dynamodb:*",
@@ -236,7 +253,9 @@ resource "aws_iam_policy" "codebuild_and_ec2_policy" {
             "acm:ListTagsForCertificate",
 	    "logs:CreateLogGroup",
 	    "logs:CreateLogStream",
-	    "logs:PutLogEvents"
+	    "logs:PutLogEvents",
+            "dynamodb:GetItem",
+            "dynamodb:PutItem"
          ],
 	"Effect": "Allow",
 	"Resource": "*",
