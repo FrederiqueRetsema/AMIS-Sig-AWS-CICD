@@ -176,8 +176,8 @@ EOF
 
 # EC2 policy
 
-resource "aws_iam_policy" "ec2_policy" {
-    name        = "${var.name_prefix}_${var.aws_region_abbr}_EC2_policy"
+resource "aws_iam_policy" "codebuild_and_ec2_policy" {
+    name        = "${var.name_prefix}_${var.aws_region_abbr}_codebuild_and_EC2_policy"
     description = "Policy for CI CD workshop on 09-07-2020."
     policy      = <<EOF
 {
@@ -230,7 +230,10 @@ resource "aws_iam_policy" "ec2_policy" {
             "ec2:DescribeAccounts",
             "acm:ListCertificates",
             "acm:DescribeCertificate",
-            "acm:ListTagsForCertificate"
+            "acm:ListTagsForCertificate",
+	    "logs:CreateLogGroup",
+	    "logs:CreateLogStream",
+	    "logs:PutLogEvents"
          ],
 	"Effect": "Allow",
 	"Resource": "*",
@@ -306,12 +309,38 @@ EOF
 resource "aws_iam_policy_attachment" "policy_attachment_ec2_role" {
    name       = "${var.name_prefix}_${var.aws_region_abbr}_policy_to_ec2_role"
    roles      = [aws_iam_role.ec2_role.name]
-   policy_arn = aws_iam_policy.ec2_policy.arn
+   policy_arn = aws_iam_policy.codebuild_and_ec2_policy.arn
 }
 
 resource "aws_iam_instance_profile" "ec2_instance_profile" {
    name       = "${var.name_prefix}_${var.aws_region_abbr}_ec2_instance_profile"
    role       = aws_iam_role.ec2_role.name
+}
+
+resource "aws_iam_role" "codebuild_role" {
+    name                  = "${var.name_prefix}_${var.aws_region_abbr}_codebuild_role"
+    description           =  "Policy for CI CD workshop on 09-07-2020."
+    force_detach_policies = true
+    assume_role_policy    =  <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "codebuild.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+        }
+    ]
+}
+EOF
+} 
+
+resource "aws_iam_policy_attachment" "policy_attachment_codebuild_role" {
+   name       = "${var.name_prefix}_${var.aws_region_abbr}_policy_to_codebuild_role"
+   roles      = [aws_iam_role.codebuild_role.name]
+   policy_arn = aws_iam_policy.codebuild_and_ec2_policy.arn
 }
 
 # AmazonAPIGatewayPushToCloudWatchLogs
