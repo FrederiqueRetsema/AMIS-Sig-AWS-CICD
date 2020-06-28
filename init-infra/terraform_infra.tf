@@ -155,6 +155,7 @@ resource "aws_iam_policy" "user_policy" {
                   "lambda:*",
                   "dynamodb:*",
                   "cloudwatch:GetMetricStatistics",
+                  "cloudwatch:DescribeAlarms",
                   "logs:*",
                   "codeguru-reviewer:ListCodeReviews",
                   "codestar-notifications:ListNotificationRules",
