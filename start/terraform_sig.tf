@@ -175,8 +175,4 @@ resource "aws_lambda_function" "sig" {
 # OUTPUT
 ##################################################################################
 
-output "invoke_url" {
-  value = "${aws_api_gateway_deployment.deployment.invoke_url}${aws_api_gateway_stage.stage.stage_name}/${aws_api_gateway_resource.api_gateway_resource_sig.path_part}"
-}
-
 
