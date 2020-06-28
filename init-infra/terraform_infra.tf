@@ -79,7 +79,10 @@ resource "aws_iam_policy" "user_policy" {
                 "s3:*"
                 ],
                 "Effect": "Allow",
-                "Resource": "arn:aws:s3:::${lower(var.name_prefix)}-sig-${lower(var.aws_region_abbr)}-bucket"
+                "Resource": ["arn:aws:s3:::${lower(var.name_prefix)}-sig-${lower(var.aws_region_abbr)}-bucket",
+                             "arn:aws:s3:::${lower(var.name_prefix)}-sig-${lower(var.aws_region_abbr)}-bucket/*",
+                             "arn:aws:s3:::codepipeline*",
+                             "arn:aws:s3:::codepipeline*/*"]
       },
       {
         "Action": [
@@ -87,14 +90,24 @@ resource "aws_iam_policy" "user_policy" {
         ],
         "Effect": "Deny",
         "Resource": ["arn:aws:s3:::frpublic",
+                     "arn:aws:s3:::frpublic/*",
                      "arn:aws:s3:::tsofra-laptop",
-                     "arn:aws:s3:::aws-bills-tsofra"]
+                     "arn:aws:s3:::tsofra-laptop/*",
+                     "arn:aws:s3:::aws-bills-tsofra",
+                     "arn:aws:s3:::aws-bills-tsofra/*"]
       },
       {
         "Action": [
                   "route53:ListHostedZones",
+                  "route53:ListHealthChecks",
                   "route53:GetHostedZoneCount",
+                  "route53:ListTrafficPolicies",
+                  "route53:GetTrafficPolicyInstance",
+                  "route53:GetTrafficPolicyInstanceCount",
+                  "route53:GetHealthCheck",
+                  "route53:GetHealthCheckCount",
                   "route53:GetChange",
+                  "route53domains:ListDomains",
                   "iam:ListRoles",
                   "iam:ListPolicies",
                   "iam:ListInstanceProfiles",
@@ -223,7 +236,8 @@ resource "aws_iam_policy" "user_policy" {
         "Action": [
                   "route53:ListResourceRecordSets",
                   "route53:ListTagsForResource",
-                  "route53:GetHostedZone"
+                  "route53:GetHostedZone",
+                  "route53:ChangeResourceRecordSets"
                 ],
 		"Effect": "Allow",
 	        "Resource": "arn:aws:route53:::hostedzone/${data.aws_route53_zone.zone.zone_id}"
