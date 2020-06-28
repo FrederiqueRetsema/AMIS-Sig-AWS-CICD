@@ -97,7 +97,9 @@ resource "aws_iam_policy" "user_policy" {
                   "route53:GetChange",
                   "iam:ListRoles",
                   "iam:ListPolicies",
-                  "iam:ListInstanceProfiles"
+                  "iam:ListInstanceProfiles",
+                  "s3:GetBucketLocation",
+                  "s3:ListAllMyBuckets"
 		],
 		"Effect": "Allow",
 		"Resource": "*"
@@ -107,6 +109,7 @@ resource "aws_iam_policy" "user_policy" {
                   "acm:ListCertificates",
                   "acm:ListTagsForCertificate",
                   "acm:DescribeCertificate",
+                  "cloudformation:DescribeStacks",
                   "ec2:ListInstanceProfiles",
                   "ec2:DescribeInstances",
                   "ec2:DescribeInstanceStatus",
@@ -115,9 +118,11 @@ resource "aws_iam_policy" "user_policy" {
                   "ec2:DescribeSecurityGroups",
                   "ec2:DescribeSubnets",
                   "ec2:StartInstanceStatus",
-                  "ec2:Stop",
+                  "ec2:StopInstances",
+                  "ec2:StartInstances",
                   "ecr:DescribeRepositories",
                   "ecr:ListImages",
+                  "elasticfilesystem:DescribeFileSystems",
                   "events:DeleteRule",
                   "events:DescribeRule",
                   "events:DisableRule",
@@ -137,6 +142,7 @@ resource "aws_iam_policy" "user_policy" {
                   "lambda:*",
                   "dynamodb:*",
                   "cloudwatch:GetMetricStatistics",
+                  "logs:*",
                   "codeguru-reviewer:ListCodeReviews",
                   "codestar-notifications:ListNotificationRules",
                   "codeguru-reviewer:ListRepositoryAssociations",
@@ -145,11 +151,7 @@ resource "aws_iam_policy" "user_policy" {
                   "wafv2:ListWebACLs",
                   "wafv2:AssociateWebACL",
                   "waf-regional:ListWebACLs",
-                  "waf-regional:AssociateWebACL",
-		  "logs:CreateLogGroup",
-		  "logs:DeleteLogGroup",
-		  "logs:CreateLogStream",
-		  "logs:PutLogEvents"
+                  "waf-regional:AssociateWebACL"
 		],
 		"Effect": "Allow",
 		"Resource": "*",
@@ -177,7 +179,8 @@ resource "aws_iam_policy" "user_policy" {
                  "Resource": "*",
                  "Condition": {
                     "ArnNotLike": {
-                        "aws:SourceArn": "arn:aws:iam::${var.account_number}:policy/${var.name_prefix}*"
+                        "aws:SourceArn": ["arn:aws:iam::${var.account_number}:policy/${var.name_prefix}*",
+                                          "arn:aws:iam::${var.account_number}:policy/FRA*"]
                  }
             }
       },
@@ -316,13 +319,38 @@ EOF
 
 # EC2 policy
 
-resource "aws_iam_policy" "codebuild_and_ec2_policy" {
-    name        = "${var.name_prefix}_${var.aws_region_abbr}_codebuild_and_EC2_policy"
+resource "aws_iam_policy" "ec2_policy" {
+    name        = "${var.name_prefix}_${var.aws_region_abbr}_EC2_policy"
     description = "Policy for CI CD workshop on 09-07-2020."
     policy      = <<EOF
 {
     "Version": "2012-10-17",
     "Statement": [
+      {
+        "Action": [
+            "codecommit:*",
+            "codebuild:*",
+            "apigateway:*",
+	    "lambda:*",
+            "dynamodb:*",
+            "ec2:DescribeAccounts",
+            "acm:ListCertificates",
+            "acm:DescribeCertificate",
+            "acm:ListTagsForCertificate",
+	    "logs:CreateLogGroup",
+	    "logs:CreateLogStream",
+	    "logs:PutLogEvents",
+            "dynamodb:GetItem",
+            "dynamodb:PutItem"
+         ],
+	"Effect": "Allow",
+	"Resource": "*",
+        "Condition": {
+            "StringEquals": {
+                "aws:RequestedRegion": "${var.aws_region_name}"
+            }
+        }
+      },
       {
         "Action": [
            "s3:*"
@@ -351,6 +379,28 @@ resource "aws_iam_policy" "codebuild_and_ec2_policy" {
       },
       {
         "Action": [
+                "iam:PassRole",
+                "iam:GetRole",
+                "route53:ListHostedZones",
+                "route53:GetChange"
+         ],
+	"Effect": "Allow",
+	"Resource": "*"
+      }
+    ]
+}
+EOF
+}
+
+resource "aws_iam_policy" "codebuild_policy" {
+    name        = "${var.name_prefix}_${var.aws_region_abbr}_codebuild_policy"
+    description = "Policy for CI CD workshop on 09-07-2020."
+    policy      = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Action": [
             "codecommit:*",
             "codebuild:*",
             "apigateway:*",
@@ -373,6 +423,32 @@ resource "aws_iam_policy" "codebuild_and_ec2_policy" {
                 "aws:RequestedRegion": "${var.aws_region_name}"
             }
         }
+      },
+      {
+        "Action": [
+           "s3:*"
+        ],
+        "Effect": "Allow",
+        "Resource": "*"
+      },
+      {
+        "Action": [
+           "s3:*"
+        ],
+        "Effect": "Deny",
+        "Resource": ["arn:aws:s3:::frpublic",
+                     "arn:aws:s3:::tsofra-laptop",
+                     "arn:aws:s3:::aws-bills-tsofra"]
+      },
+      {
+        "Action": [
+           "route53:GetHostedZone",
+           "route53:ListTagsForResource",
+           "route53:ChangeResourceRecordSets",
+           "route53:ListResourceRecordSets"
+        ],
+        "Effect": "Allow",
+	"Resource": "arn:aws:route53:::hostedzone/${data.aws_route53_zone.zone.zone_id}"
       },
       {
         "Action": [
@@ -621,7 +697,7 @@ EOF
 resource "aws_iam_policy_attachment" "policy_attachment_ec2_role" {
    name       = "${var.name_prefix}_${var.aws_region_abbr}_policy_to_ec2_role"
    roles      = [aws_iam_role.ec2_role.name]
-   policy_arn = aws_iam_policy.codebuild_and_ec2_policy.arn
+   policy_arn = aws_iam_policy.ec2_policy.arn
 }
 
 resource "aws_iam_instance_profile" "ec2_instance_profile" {
@@ -652,7 +728,7 @@ EOF
 resource "aws_iam_policy_attachment" "policy_attachment_codebuild_role" {
    name       = "${var.name_prefix}_${var.aws_region_abbr}_policy_to_codebuild_role"
    roles      = [aws_iam_role.codebuild_role.name]
-   policy_arn = aws_iam_policy.codebuild_and_ec2_policy.arn
+   policy_arn = aws_iam_policy.codebuild_policy.arn
 }
 
 resource "aws_iam_role" "codepipeline_role" {
