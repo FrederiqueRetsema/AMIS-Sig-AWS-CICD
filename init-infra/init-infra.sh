@@ -47,6 +47,12 @@ fi
 pub_key=`cat AMIS-${aws_region_name}.pub`
 echo $pub_key
 
+# Zip file
+
+cd lambdas/stop_ec2
+zip stop_ec2.zip stop_ec2.py
+cd ../..
+
 # Use terraform to deploy the infrastructure
 
 ../../terraform init --var-file=../../terraform.tfvars

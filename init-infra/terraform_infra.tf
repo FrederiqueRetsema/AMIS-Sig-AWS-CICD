@@ -316,8 +316,46 @@ resource "aws_iam_policy" "lambda_sig_policy" {
         "Action": [
 		  "logs:CreateLogGroup",
 		  "logs:CreateLogStream",
-		  "logs:PutLogEvents",
-		  "sns:Publish"
+		  "logs:PutLogEvents"
+        ],
+		"Effect": "Allow",
+		"Resource": "*",
+                "Condition": {
+                   "StringEquals": {
+                       "aws:RequestedRegion": "${var.aws_region_name}"
+                   }
+                }
+	}
+      ]
+}
+EOF
+}
+
+resource "aws_iam_policy" "lambda_stop_ec2_policy" {
+    name        = "${var.name_prefix}_${var.aws_region_abbr}_lambda_stop_ec2_policy"
+    description = "Policy for CI CD workshop on 09-07-2020."
+    policy      = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Action": [
+		  "logs:CreateLogGroup",
+		  "logs:CreateLogStream",
+		  "logs:PutLogEvents"
+        ],
+		"Effect": "Allow",
+		"Resource": "*",
+                "Condition": {
+                   "StringEquals": {
+                       "aws:RequestedRegion": "${var.aws_region_name}"
+                   }
+                }
+      },
+      {
+        "Action": [
+		  "ec2:DescribeInstances",
+		  "ec2:StopInstances"
         ],
 		"Effect": "Allow",
 		"Resource": "*",
@@ -661,7 +699,7 @@ resource "aws_iam_policy" "codepipeline_policy" {
 EOF
 }
 
-# Lambda sig role
+# Lambda roles
 
 resource "aws_iam_role" "lambda_sig_role" {
     name                  = "${var.name_prefix}_${var.aws_region_abbr}_lambda_sig_role"
@@ -687,6 +725,32 @@ resource "aws_iam_policy_attachment" "policy_to_sig_role" {
    name       = "${var.name_prefix}_${var.aws_region_abbr}_policy_to_sig_role"
    roles      = [aws_iam_role.lambda_sig_role.name]
    policy_arn = aws_iam_policy.lambda_sig_policy.arn
+}
+
+resource "aws_iam_role" "lambda_stop_ec2_role" {
+    name                  = "${var.name_prefix}_${var.aws_region_abbr}_lambda_stop_ec2_role"
+    description           =  "Policy for CI CD workshop on 09-07-2020."
+    force_detach_policies = true
+    assume_role_policy    =  <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "lambda.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+        }
+    ]
+}
+EOF
+} 
+
+resource "aws_iam_policy_attachment" "policy_to_stop_ec2_role" {
+   name       = "${var.name_prefix}_${var.aws_region_abbr}_policy_to_stop_ec2_role"
+   roles      = [aws_iam_role.lambda_stop_ec2_role.name]
+   policy_arn = aws_iam_policy.lambda_stop_ec2_policy.arn
 }
 
 resource "aws_iam_role" "ec2_role" {
@@ -915,6 +979,39 @@ resource "aws_s3_access_point" "sig-bucket-access-point" {
     }
 }
 
+resource "aws_lambda_permission" "lambda_stop_ec2_permission" {
+  depends_on    = [aws_lambda_function.stop_ec2]
+  statement_id  = "AllowExecutionFromCloudWatch"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.stop_ec2.function_name
+  principal     = "cloudwatch.amazonaws.com"
+}
+
+resource "aws_lambda_function" "stop_ec2" {
+    function_name = "${var.name_prefix}_sig_${var.aws_region_abbr}_stop_ec2"
+    filename      = "./lambdas/stop_ec2/stop_ec2.zip"
+    role          = aws_iam_role.lambda_stop_ec2_role.arn
+    handler       = "stop_ec2.lambda_handler"
+    runtime       = "python3.8"
+    timeout       = 60
+    environment {
+        variables = {
+            region = var.aws_region_name
+        }
+    }
+}
+
+resource "aws_cloudwatch_event_rule" "stop_ec2_event_rule" {
+  name                = "${var.name_prefix}_stop_ec2_rule"
+  description         = "Stop EC2's every night at 00:00 CET"
+  schedule_expression = "cron(0 22 * * ? *)"
+}
+
+resource "aws_cloudwatch_event_target" "stop_ec2_event_target" {
+  rule                = aws_cloudwatch_event_rule.stop_ec2_event_rule.name
+  target_id           = "StartLambda"
+  arn                 = aws_lambda_function.stop_ec2.arn
+}
 
 ##################################################################################
 # OUTPUT
