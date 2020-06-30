@@ -79,10 +79,12 @@ fi
 
 # Add passwords to the users. DomToren${i}# (f.e. DomToren1#) is an example only, we will use different 
 # passwords during the workshop.
+#
+# If you don't want your users to change their password immediately, then add --no-password-reset-required to the aws iam create-login-profile
 
 for i in $(seq ${offset_number_of_users} ${last_number_of_users})
 do
-  aws iam create-login-profile --user-name "${name_prefix}$i" --password "DomToren${i}#" --no-password-reset-required
+  aws iam create-login-profile --user-name "${name_prefix}$i" --password "DomToren${i}#" 
   if (test $? -ne 0)
   then
     echo "AWS CLI failed (IAM create-logon-profile)"
