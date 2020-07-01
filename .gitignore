@@ -4,4 +4,5 @@
 *.backup
 *.tfstate
 *.txt
+*.zip
 */.terraform/*

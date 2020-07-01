@@ -1,0 +1,23 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo `date` – install commands
+      - curl https://releases.hashicorp.com/terraform/0.12.26/terraform_0.12.26_linux_amd64.zip --output terraform.zip
+      - unzip terraform.zip
+      - mv terraform /usr/local/bin/
+  pre_build:
+    commands:
+      - echo `date` – pre_build commands
+      - cd lambdas
+      - zip sig.zip sig.py
+      - cd ..
+      - terraform init -backend-config=terraform_s3_directory.cfg
+  build:
+    commands:
+      - echo `date` – build commands
+      - terraform apply -auto-approve
+  post_build:
+    commands:
+      - echo `date` – post_build commands
