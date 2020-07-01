@@ -56,7 +56,13 @@ data "aws_ami" "amazon_linux_ami" {
 
 }
 
-#  tags = { Name = var.name_prefix }
+# If you have multiple VPC's per region, you might get an error. In that case, tag the VPN that should be used 
+# by the SIG by calling it AMIS (or your own prefix). The data "aws_vpc" "vpc" should look like:
+#
+# data "aws_vpc" "vpc" {
+#    tags = { Name = var.name_prefix }
+# }
+
 data "aws_vpc" "vpc" {
 }
 
@@ -1009,7 +1015,7 @@ resource "aws_s3_access_point" "sig-bucket-access-point" {
 
 resource "aws_lambda_permission" "lambda_stop_ec2_permission" {
   depends_on    = [aws_lambda_function.stop_ec2]
-  statement_id  = "AllowExecutionFromCloudWatch"
+  statement_id  = "AllowExecutionFromCloudWatch-${var.aws_region_abbr}"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.stop_ec2.function_name
   principal     = "cloudwatch.amazonaws.com"
