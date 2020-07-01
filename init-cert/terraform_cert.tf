@@ -8,10 +8,9 @@ variable "aws_region_name"        {}
 variable "aws_region_abbr"        {}
 
 variable "account_number"         {}
-variable "domainname"             {}
+variable "domain_name"            {}
 
 variable "name_prefix"            {description = "Is not used in this script. Declaration is done to prevent warnings." }
-variable "key_prefix"             {description = "Is not used in this script. Declaration is done to prevent warnings." }
 
 variable "number_of_users"        {}
 variable "offset_number_of_users" {}
@@ -31,7 +30,7 @@ provider "aws" {
 ##################################################################################
 
 data "aws_route53_zone" "my_zone" {
-    name         = var.domainname
+    name         = var.domain_name
     private_zone = false
 }
 
@@ -44,7 +43,7 @@ data "aws_route53_zone" "my_zone" {
 #
 
 resource "aws_acm_certificate" "certificate" {
-  domain_name       = "*.${var.domainname}"
+  domain_name       = "*.${var.domain_name}"
   validation_method = "DNS"
 
   lifecycle {
