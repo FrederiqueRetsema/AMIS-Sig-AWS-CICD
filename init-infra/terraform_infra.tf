@@ -108,14 +108,41 @@ resource "aws_iam_policy" "user_policy" {
                   "route53:GetHealthCheckCount",
                   "route53:GetChange",
                   "route53domains:ListDomains",
+                  "iam:ListUsers",
+                  "iam:ListGroups",
                   "iam:ListRoles",
                   "iam:ListPolicies",
                   "iam:ListInstanceProfiles",
+                  "iam:GetServiceLastAccessedDetails",
                   "s3:GetBucketLocation",
                   "s3:ListAllMyBuckets"
 		],
 		"Effect": "Allow",
 		"Resource": "*"
+      },
+      {
+        "Action": [
+                  "iam:ListUserPolicies",
+                  "iam:ListUserTags",
+                  "iam:ListSSHPublicKeys",
+                  "iam:ListAccessKeys",
+                  "iam:ListServiceSpecificCredentials",
+                  "iam:ListAttachedUserPolicies",
+                  "iam:ListGroupsForUser",
+                  "iam:GetUser",
+                  "iam:GenerateServiceLastAccessedDetails",
+                  "iam:ListPoliciesGrantingServiceAccess"
+                ],
+                "Effect": "Allow",
+                "Resource": "arn:aws:iam::300577164517:user/AMIS*"
+      },
+      {
+        "Action": [
+                  "iam:ListGroupPolicies",
+                  "iam:ListAttachedGroupPolicies"
+                ],
+                "Effect": "Allow",
+                "Resource": "arn:aws:iam::300577164517:group/AMIS*"
       },
       {
         "Action": [

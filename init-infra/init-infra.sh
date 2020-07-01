@@ -112,6 +112,7 @@ function get_approval_pool_members {
     approval_pool_members+=",\"arn:aws:iam::${account_number}:user/${name_prefix}${i}\""
   done
 
+  echo ${approval_pool_members}
 }
 
 # create_approval_rule_templates
