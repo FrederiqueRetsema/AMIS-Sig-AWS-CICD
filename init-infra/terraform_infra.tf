@@ -150,6 +150,7 @@ resource "aws_iam_policy" "user_policy" {
                   "acm:ListTagsForCertificate",
                   "acm:DescribeCertificate",
                   "cloudformation:DescribeStacks",
+                  "cloudformation:DescribeStackResources",
                   "ec2:ListInstanceProfiles",
                   "ec2:DescribeInstances",
                   "ec2:DescribeInstanceStatus",
@@ -288,7 +289,7 @@ resource "aws_iam_policy" "user_policy" {
                    "iam:PassRole"
                    ],
          "Effect": "Allow",
-         "Resource": [ "arn:aws:iam::*:role/AMIS_euw1_codebuild_role"]
+         "Resource": [ "arn:aws:iam::*:role/AMIS_${var.aws_region_abbr}_codebuild_role"]
       },
       {
          "Action": [
