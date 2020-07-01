@@ -4,7 +4,7 @@ aws_region_name        = "eu-west-1"
 aws_region_abbr        = "euw1"
 
 account_number         = "your_account_number"
-domainname             = "retsema.eu"
+domain_name            = "retsema.eu"
 
 name_prefix            = "AMIS"
 

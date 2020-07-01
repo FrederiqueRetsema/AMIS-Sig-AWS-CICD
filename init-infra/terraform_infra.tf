@@ -8,7 +8,7 @@ variable "aws_region_name"        {}
 variable "aws_region_abbr"        {}
 
 variable "account_number"         {}
-variable "domainname"             {}
+variable "domain_name"            { description = "Is not used in this script. Declaration is done to prevent warnings." }
 
 variable "name_prefix"            {}
 variable "pub_key"                {}
@@ -33,7 +33,7 @@ provider "aws" {
 ##################################################################################
 
 data "aws_route53_zone" "zone" {
-    name         = var.domainname
+    name         = var.domain_name
 }
 
 data "aws_iam_policy" "AmazonAPIGatewayPushToCloudWatchLogs" {
@@ -56,8 +56,8 @@ data "aws_ami" "amazon_linux_ami" {
 
 }
 
+#  tags = { Name = var.name_prefix }
 data "aws_vpc" "vpc" {
-  tags = { Name = "FRA" }
 }
 
 ##################################################################################
