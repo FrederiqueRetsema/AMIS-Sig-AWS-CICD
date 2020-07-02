@@ -7,7 +7,7 @@ This directory contains the Vagrant file, which can be used to install the envir
 Instructions:
 1) Install vagrant (see https://vagrantup.com/downloads.html) and virtual box (see https://virtualbox.org/wiki/Downloads) on your machine
 2) Take care that "hypervisorlaunchtype" in bcdedit is switched to "off". You can check this with `bcdedit` (without parameters) in an administrator cmd session, you can switch this from Hyper-V to VirtualBox by the command `bcdedit /set hypervisorlaunchtype off`. When you want to use Hyper-V again, you can switch back with `bcdedit /set hypervisorlaunchtype auto`. In both cases, you need a restart of the computer after this change.
-3) Start cmd, go to the directory with the Vagrant file and type `vagrant up`. This will download and install the OS, use yum update to install updates and download and install the relevant software packages.
+3) Start cmd, go to the directory with the Vagrant file. If you haven't done so before, then first install the vbguest plugin with `vagrant plugin install vagrant-vbguest` and then (always) type `vagrant up`. This will download and install the OS, use yum update to install updates and download and install the relevant software packages.
 4) When `vagrant up` is ready then use `vagrant ssh` to ssh into the virtual machine. You don't have to enter a password here. When you want to use the VirtualBox environment to log on, you can do so by using user `vagrant` with password `vagrant`.
 5) In the home directory of vagrant is a file `init-all.sh`. Start this file (`./init-all.sh`). It will ask you to provide an access key and a secret access key, a default region, etc. If you don't know how to get these, this is explained below.
 
@@ -15,8 +15,9 @@ When all questions are asked, the environment will build itself. This is done by
 
 `init-all.sh` will use the following order to install: \
 - init-cert -> to request a star certificate (if necessary) for your domain \
-- init-infra -> to create IAM (users, groups, permissions etc), DynamoDB (database table) and KMS (keys) objects \
-- init-shop -> will enroll the objects for the shop: DNS-record, API Gateway, Lambda functions, SNS topics
+- init-infra -> to create IAM (users, groups, permissions etc), DynamoDB (database table), s3 bucket per region, EC2 virtual machines (one per user), etc 
+
+The init-cert and init-infra will start once per region. When you use 4 regions and use 5 users per region, you will have AMIS1-AMIS5 in eu-central-1 (Frankfurt), AMIS6-AMIS10 in eu-west-2 (London), AMIS11-AMIS15 in eu-west-3 (Paris), AMIS16-AMIS20 in eu-north-1 (Stockholm). AMIS0 is a special case: this user will not be added by the scripts, but it is added to the CodeCommit template. The assumption is, that you will create the AMIS0 user by hand and give it administrator permissions. You can use this for approval of pull requests within CodeCommit.
 
 ## Destroy the environment
 
