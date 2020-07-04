@@ -36,10 +36,6 @@ data "aws_route53_zone" "zone" {
     name         = var.domain_name
 }
 
-data "aws_iam_policy" "AmazonAPIGatewayPushToCloudWatchLogs" {
-    arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs" 
-}
-
 data "aws_ami" "amazon_linux_ami" {
   most_recent = true
   owners      = ["amazon"]
@@ -72,6 +68,32 @@ data "aws_vpc" "vpc" {
 
 # IAM Objects
 # -----------
+
+resource "aws_iam_policy" "APIGatewayCloudWatchLogs" {
+    name        = "${var.name_prefix}_${var.aws_region_abbr}_api_gateway_cloudwatch_logs"
+    description = "Policy for CI CD workshop on 09-07-2020."
+    policy      = <<EOF
+{
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:DescribeLogGroups",
+                "logs:DescribeLogStreams",
+                "logs:PutLogEvents",
+                "logs:GetLogEvents",
+                "logs:FilterLogEvents"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+EOF
+}
 
 resource "aws_iam_policy" "user_policy" {
     name        = "${var.name_prefix}_${var.aws_region_abbr}_user_policy"
@@ -870,9 +892,6 @@ resource "aws_iam_policy_attachment" "policy_attachment_codepipeline_role" {
    policy_arn = aws_iam_policy.codepipeline_policy.arn
 }
 
-# AmazonAPIGatewayPushToCloudWatchLogs
-# Needed to log what happens in the API gateway
-
 resource "aws_iam_role" "api_gateway_role" {
     name                  = "${var.name_prefix}_${var.aws_region_abbr}_api_gateway_role"
     description           = "Policy for CI CD workshop on 09-07-2020."
@@ -896,7 +915,7 @@ EOF
 resource "aws_iam_policy_attachment" "policy_to_cloudwatch_role" {
     name       = "${var.name_prefix}_${var.aws_region_abbr}_policy_to_cloudwatch_role"
     roles      = [aws_iam_role.api_gateway_role.name]
-    policy_arn = data.aws_iam_policy.AmazonAPIGatewayPushToCloudWatchLogs.arn
+    policy_arn = aws_iam_policy.APIGatewayCloudWatchLogs.arn
 }
 
 # IAM users
