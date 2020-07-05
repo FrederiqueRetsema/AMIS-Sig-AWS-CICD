@@ -1036,7 +1036,7 @@ resource "aws_lambda_permission" "lambda_stop_ec2_permission" {
   statement_id  = "AllowExecutionFromCloudWatch-${var.aws_region_abbr}"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.stop_ec2.function_name
-  principal     = "cloudwatch.amazonaws.com"
+  principal     = "events.amazonaws.com"
 }
 
 resource "aws_lambda_function" "stop_ec2" {
