@@ -119,9 +119,7 @@ function configure_domain {
 
 function info_number_of_regions {
 
-  echo "Give the number of regions (max = 5): per region you can use at most 5 users" 
-  echo "(this might be old information -> have to check this when we can run multiple"
-  echo "pipelines at the same time)"
+  echo "Give the number of regions (max = 4): per region you can use at most 5 users" 
 
 }
 
@@ -386,5 +384,6 @@ do
 
   create_certificate_if_necessary $aws_region_name $domain_name
   enroll_init_infra $aws_region_name $prefix_pwd $postfix_pwd
+  cp ~/${aws_region_name}/${SIG_REPO_NAME}/init-infra/${name_prefix}-${aws_region_name} /vagrant/prep
 
 done

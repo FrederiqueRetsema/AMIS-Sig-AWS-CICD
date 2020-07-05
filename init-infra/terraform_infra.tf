@@ -74,7 +74,6 @@ resource "aws_iam_policy" "APIGatewayCloudWatchLogs" {
     description = "Policy for CI CD workshop on 09-07-2020."
     policy      = <<EOF
 {
-{
     "Version": "2012-10-17",
     "Statement": [
         {
